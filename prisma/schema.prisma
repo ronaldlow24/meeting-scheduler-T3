@@ -6,12 +6,28 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Example {
+model MeetingRoom {
   id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  title     String   @db.Text
+  startTime DateTime
+  endTime   DateTime
+  actualStartTime DateTime
+  actualEndTime DateTime
+  createdAt DateTime
 }
+
+
+// type MeetingRoomType = {
+//     id: string;
+//     title : string;
+//     startTime: Date;
+//     endTime: Date;
+//     attendees: AttendeeType[];
+//     actualStartTime: Date;
+//     actualEndTime: Date;
+//     createdAt: Date;
+// };

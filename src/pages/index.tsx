@@ -39,7 +39,7 @@ type AttendeeType = {
 };
 
 type MeetingRoomType = {
-    id: number;
+    id: string;
     title : string;
     secret: string;
     startTime: Date;
