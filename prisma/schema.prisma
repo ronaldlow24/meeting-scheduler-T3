@@ -13,21 +13,23 @@ datasource db {
 model MeetingRoom {
   id        String   @id @default(cuid())
   title     String   @db.Text
-  startTime DateTime
-  endTime   DateTime
+  availableStartDateTime DateTime
+  availableEndDateTime DateTime
   actualStartTime DateTime
   actualEndTime DateTime
   createdAt DateTime
 }
 
+model MeetingRoomAttendee {
+  id        String   @id @default(cuid())
+  meetingRoomId String
+  attendeeName String
+}
 
-// type MeetingRoomType = {
-//     id: string;
-//     title : string;
-//     startTime: Date;
-//     endTime: Date;
-//     attendees: AttendeeType[];
-//     actualStartTime: Date;
-//     actualEndTime: Date;
-//     createdAt: Date;
-// };
+model MeetingRoomAttendeeDatetimeRange {
+  id        String   @id @default(cuid())
+  meetingRoomAttendeeId String
+  datetimeMode String
+  startDateTime DateTime
+  endDateTime DateTime
+}
