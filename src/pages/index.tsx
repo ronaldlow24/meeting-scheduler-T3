@@ -19,16 +19,6 @@ const modalCustomStyles = {
 
 const DefaultNumberOfAttendees = 2;
 
-const ModalCreateMode = "CREATE";
-const ModalJoinMode = "JOIN";
-const DefaultModalMode = ModalCreateMode;
-type ModalMode = typeof ModalCreateMode | typeof ModalJoinMode;
-
-type ModalStatusType = {
-    isModalOpen: boolean;
-    modalMode: ModalMode;
-};
-
 type DatetimeRange = {
     datetimeMode: "FREE" | "BUSY";
     startDateTime: Date;
@@ -53,7 +43,6 @@ type MeetingRoomType = {
 };
 
 type BasedModalComponentType = {
-    modelStatus: ModalStatusType;
     closeModal: () => void;
 };
 
@@ -69,8 +58,9 @@ type JoinRoomModalComponentType = BasedModalComponentType & {
     ) => Promise<boolean>;
 };
 
+type ModalOpeningState = "openingCreateRoomModal" | "openingJoinRoomModal" | "close";
+
 const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
-    modelStatus,
     closeModal,
     createRoom,
 }) => {
@@ -111,7 +101,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
 
     return (
         <Modal
-            isOpen={modelStatus.isModalOpen}
+            isOpen={true}
             onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
@@ -206,7 +196,6 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
 };
 
 const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
-    modelStatus,
     closeModal,
     joinRoom,
 }) => {
@@ -231,7 +220,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 
     return (
         <Modal
-            isOpen={modelStatus.isModalOpen}
+            isOpen={true}
             onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
@@ -306,8 +295,15 @@ Modal.setAppElement("#root");
 const Home: NextPage = () => {
     const hello = trpc.example.hello.useQuery({ text: "from tRPC" });
 
+    const [modalOpeningState, setModalOpeningState] = useState<ModalOpeningState>("close");
+
+    const createRoom = trpc.example.createRoom.useMutation();
+
     return (
         <>
+            {
+                modalOpeningState === "openingCreateRoomModal" && <CreateRoomModalComponent closeModal={() => setModalOpeningState("close")}/>
+            }
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
