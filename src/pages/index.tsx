@@ -293,16 +293,31 @@ Modal.setAppElement("#root");
 
 
 const Home: NextPage = () => {
-    const hello = trpc.example.hello.useQuery({ text: "from tRPC" });
+    const createRoomMutation = trpc.room.createRoom.useMutation();
+
+    const closeModal = () => {
+        setModalOpeningState("close");
+    };
+
+    const handleCreateRoom = async (title: string, startTime : Date, endTime : Date, numberOfAttendees : number) => {
+
+        const createRoomResult = await createRoomMutation.mutateAsync({
+            title,
+            startTime,
+            endTime,
+            numberOfAttendees
+        });
+
+        return createRoomResult.result;
+    };
+
 
     const [modalOpeningState, setModalOpeningState] = useState<ModalOpeningState>("close");
-
-    const createRoom = trpc.example.createRoom.useMutation();
 
     return (
         <>
             {
-                modalOpeningState === "openingCreateRoomModal" && <CreateRoomModalComponent closeModal={() => setModalOpeningState("close")}/>
+                modalOpeningState === "openingCreateRoomModal" && <CreateRoomModalComponent closeModal={() => closeModal()} createRoom={handleCreateRoom} />
             }
             <main>
                 <div className="container">
@@ -325,8 +340,8 @@ const Home: NextPage = () => {
                             </button>
 
                             <p className="">
-                                {hello.data
-                                    ? hello.data.greeting
+                                {createRoom.data
+                                    ? createRoom.data.greeting
                                     : "Loading tRPC query..."}
                             </p>
                         </div>
