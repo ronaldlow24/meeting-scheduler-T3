@@ -14,19 +14,68 @@ export const roomRouter = router({
               }
             ))
         .mutation(({ input,ctx }) => {
-          ctx.prisma.meetingRoom.create({
+          //create and return the room
+          const creationResult = ctx.prisma.meetingRoom.create({
             data: {
               title: input.title,
+              secretKey 
               availableStartDateTime: input.startTime,
               availableEndDateTime: input.endTime,
               numberOfAttendees: input.numberOfAttendees,
               createdAt: new Date(),
             }
           })
+
+          if(!creationResult) return {
+            result: false,
+            data: null
+          }
             return {
                 result: true,
-                data : input
+                data : creationResult
             };
+        }),
+    joinRoom: publicProcedure
+        .input(
+            z.object(
+              {
+                secret: z.string(),
+                name: z.string(),
+              }
+            ))
+        .mutation(({ input,ctx }) => {
+          //join the room
+          const room = ctx.prisma.meetingRoom.findUnique({
+            where: {
+              secret: input.secret
+            }
+          })
+
+
+
+          const joinResult = ctx.prisma.meetingRoom.update({
+            where: {
+              secret: input.secret
+            },
+            data: {
+              attendees: {
+                create: {
+                  name: input.name,
+                  createdAt: new Date(),
+                }
+              }
+            }
+          })
+
+          if(!joinResult) return {
+            result: false,
+            data: null
+          }
+
+          return {  
+            result: true, 
+            data: joinResult
+          };
         }),
     getAll: publicProcedure.query(({ ctx }) => {
         return ctx.prisma.meetingRoom.findMany();

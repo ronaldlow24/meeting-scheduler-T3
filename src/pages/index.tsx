@@ -33,7 +33,6 @@ type AttendeeType = {
 type MeetingRoomType = {
     id: string;
     title : string;
-    secret: string;
     availableStartDateTime: Date;
     availableEndDateTime: Date;
     attendees: AttendeeType[];
@@ -54,7 +53,7 @@ type CreateRoomModalComponentType = BasedModalComponentType & {
 
 type JoinRoomModalComponentType = BasedModalComponentType & {
     joinRoom: (
-        secret: string, name: string
+        secretKey: string, name: string
     ) => Promise<boolean>;
 };
 
@@ -81,6 +80,32 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
     };
 
     const handleSubmit = async () =>{
+        //validate all input
+        if (roomTitle === "") {
+            toast.error("Room title must not be empty");
+            return;
+        }
+
+        if (startTime === null || startTime === undefined) {
+            toast.error("Start time must not be empty");
+            return;
+        }
+
+        if (endTime === null || endTime === undefined) {
+            toast.error("End time must not be empty");
+            return;
+        }
+
+        if (startTime > endTime) {
+            toast.error("Start time must be less than end time");
+            return;
+        }
+
+        if (numberOfAttendees < DefaultNumberOfAttendees) {
+            toast.error(`Number of attendees must be greater than ${DefaultNumberOfAttendees-1}`);
+            return;
+        }
+
         const result = await createRoom(roomTitle, startTime, endTime, numberOfAttendees);
 
         if (!result) {
@@ -294,6 +319,7 @@ Modal.setAppElement("#root");
 
 const Home: NextPage = () => {
     const createRoomMutation = trpc.room.createRoom.useMutation();
+    const joinRoomMutation = trpc.room.joinRoom.useMutation();
 
     const closeModal = () => {
         setModalOpeningState("close");
@@ -311,6 +337,14 @@ const Home: NextPage = () => {
         return createRoomResult.result;
     };
 
+    const handleJoinRoom = async (secret: string, name: string) => {
+        const joinRoomResult = await trpc.room.joinRoom.mutateAsync({
+            secret,
+            name
+        });
+
+        return joinRoomResult.result;
+    };
 
     const [modalOpeningState, setModalOpeningState] = useState<ModalOpeningState>("close");
 
@@ -318,6 +352,9 @@ const Home: NextPage = () => {
         <>
             {
                 modalOpeningState === "openingCreateRoomModal" && <CreateRoomModalComponent closeModal={() => closeModal()} createRoom={handleCreateRoom} />
+            }
+            {
+                modalOpeningState === "openingJoinRoomModal" && <JoinRoomModalComponent closeModal={() => closeModal()} joinRoom={trpc.room.joinRoom} />
             }
             <main>
                 <div className="container">

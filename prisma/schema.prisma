@@ -13,6 +13,7 @@ datasource db {
 model MeetingRoom {
   id        String   @id @default(cuid())
   title     String   @db.Text
+  serectKey String   @db.Text @unique
   numberOfAttendees Int
   availableStartDateTime DateTime
   availableEndDateTime DateTime
