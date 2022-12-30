@@ -13,19 +13,20 @@ datasource db {
 model MeetingRoom {
   id        String   @id @default(cuid())
   title     String   @db.Text
-  serectKey String   @db.Text @unique
+  secretKey String   @db.Text @unique
   numberOfAttendees Int
   availableStartDateTime DateTime
   availableEndDateTime DateTime
   actualStartTime DateTime?
   actualEndTime DateTime? 
-  createdAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model MeetingRoomAttendee {
-  id        String   @id @default(cuid())
   meetingRoomId String
   attendeeName String
+  createdAt DateTime @default(now())
+  @@unique([meetingRoomId, attendeeName])
 }
 
 model MeetingRoomAttendeeDatetimeRange {

@@ -48,13 +48,13 @@ type BasedModalComponentType = {
 type CreateRoomModalComponentType = BasedModalComponentType & {
     createRoom: (
         title: string, startTime : Date, endTime : Date, numberOfAttendees : number
-    ) => Promise<boolean>;
+    ) => Promise<boolean|undefined>;
 };
 
 type JoinRoomModalComponentType = BasedModalComponentType & {
     joinRoom: (
         secretKey: string, name: string
-    ) => Promise<boolean>;
+    ) => Promise<boolean|undefined>;
 };
 
 type ModalOpeningState = "openingCreateRoomModal" | "openingJoinRoomModal" | "close";
@@ -81,7 +81,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
 
     const handleSubmit = async () =>{
         //validate all input
-        if (roomTitle === "") {
+        if (roomTitle.trim() === "") {
             toast.error("Room title must not be empty");
             return;
         }
@@ -110,6 +110,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
 
         if (!result) {
             toast.error("Failed to create room");
+            return;
         }
 
         clearAndCloseModal();
@@ -227,15 +228,27 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
     const [secret, setSecret] = useState<string>("");
     const [name, setName] = useState<string>("");
 
-    const handleSubmit = async () =>{
+    const handleSubmit = async () => {
+        //validate all input
+        if (secret.trim() === "") {
+            toast.error("Secret must not be empty");
+            return;
+        }
+
+        if (name.trim() === "") {
+            toast.error("Name must not be empty");
+            return;
+        }
+
         const result = await joinRoom(secret, name);
 
         if (!result) {
             toast.error("Failed to join room");
+            return;
         }
 
         clearAndCloseModal();
-    }
+    };
 
     const clearAndCloseModal = () => {
         setSecret("");
@@ -314,8 +327,6 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 };
 
 
-Modal.setAppElement("#root");
-
 
 const Home: NextPage = () => {
     const createRoomMutation = trpc.room.createRoom.useMutation();
@@ -334,14 +345,28 @@ const Home: NextPage = () => {
             numberOfAttendees
         });
 
+        if(!createRoomResult.result){
+            toast.error("Failed to create room");
+            return;
+        }
+
+        toast.success(`Room created successfully, your secret is copied to clipboard, please save it immediately!`);
+        navigator.clipboard.writeText(createRoomResult.data?.secretKey!);
+
         return createRoomResult.result;
     };
 
-    const handleJoinRoom = async (secret: string, name: string) => {
-        const joinRoomResult = await trpc.room.joinRoom.mutateAsync({
-            secret,
+    const handleJoinRoom = async (secretKey: string, name: string) => {
+
+        const joinRoomResult = await joinRoomMutation.mutateAsync({
+            secretKey,
             name
         });
+
+        if(!joinRoomResult.result){
+            toast.error(joinRoomResult.error);
+            return;
+        }
 
         return joinRoomResult.result;
     };
@@ -354,7 +379,7 @@ const Home: NextPage = () => {
                 modalOpeningState === "openingCreateRoomModal" && <CreateRoomModalComponent closeModal={() => closeModal()} createRoom={handleCreateRoom} />
             }
             {
-                modalOpeningState === "openingJoinRoomModal" && <JoinRoomModalComponent closeModal={() => closeModal()} joinRoom={trpc.room.joinRoom} />
+                modalOpeningState === "openingJoinRoomModal" && <JoinRoomModalComponent closeModal={() => closeModal()} joinRoom={handleJoinRoom} />
             }
             <main>
                 <div className="container">
