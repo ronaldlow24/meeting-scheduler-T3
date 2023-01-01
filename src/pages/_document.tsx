@@ -1,10 +1,10 @@
 import { Html, Head, Main, NextScript } from 'next/document'
 import { ToastContainer } from "react-toastify";
 import Modal from "react-modal";
+Modal.setAppElement("#__next");
 
 export default function Document() {
 
-Modal.setAppElement("#root");
 
   return (
     <Html>

@@ -17,6 +17,7 @@ const modalCustomStyles = {
     },
 };
 
+
 const DefaultNumberOfAttendees = 2;
 
 type DatetimeRange = {
@@ -329,6 +330,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 
 
 const Home: NextPage = () => {
+
     const createRoomMutation = trpc.room.createRoom.useMutation();
     const joinRoomMutation = trpc.room.joinRoom.useMutation();
 
@@ -389,6 +391,7 @@ const Home: NextPage = () => {
                             <button
                                 type="button"
                                 className="btn btn-outline-success"
+                                onClick={() => setModalOpeningState("openingCreateRoomModal")}
                             >
                                 Create a room
                             </button>
@@ -397,18 +400,12 @@ const Home: NextPage = () => {
                             <button
                                 type="button"
                                 className="btn btn-outline-primary"
+                                onClick={() => setModalOpeningState("openingJoinRoomModal")}
                             >
                                 Join a room
                             </button>
-
-                            <p className="">
-                                {createRoom.data
-                                    ? createRoom.data.greeting
-                                    : "Loading tRPC query..."}
-                            </p>
                         </div>
                     </div>
-                    <AuthShowcase />
                 </div>
             </main>
         </>
@@ -417,29 +414,3 @@ const Home: NextPage = () => {
 
 export default Home;
 
-const AuthShowcase: React.FC = () => {
-    // const { data: sessionData } = useSession();
-
-    // const { data: secretMessage } = trpc.auth.getSecretMessage.useQuery(
-    //     undefined, // no input
-    //     { enabled: sessionData?.user !== undefined }
-    // );
-
-    return (
-        <div className="">
-            {/* <p className="">
-                {sessionData && (
-                    <span>Logged in as {sessionData.user?.name}</span>
-                )}
-                {secretMessage && <span> - {secretMessage}</span>}
-            </p>
-            <button
-                type="button"
-                className="btn btn-primary"
-                onClick={sessionData ? () => signOut() : () => signIn()}
-            >
-                {sessionData ? "Sign out" : "Sign in"}
-            </button> */}
-        </div>
-    );
-};
