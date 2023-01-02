@@ -1,9 +1,125 @@
 import { z } from "zod";
 import { User } from "../../../types/User";
 import { isLoggedIn, login, logout } from "../../../utils/session";
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure } from "../trpc";
 
 export const roomRouter = router({
+    getRoomBySession: protectedProcedure
+        .query(async ({ ctx }) => {
+
+            const user = ctx.request.req.session.user!;
+
+            const room = await ctx.prisma.meetingRoom.findUnique({
+                where: {
+                    id: user.meetingRoomId,
+                },
+            });
+
+            if (!room){
+                return {
+                    result: false,
+                    data: null,
+                    error: "Room not found",
+                };
+            }
+
+            return {
+                result: true,
+                data: room,
+            };
+        }),
+    getRoomById: protectedProcedure
+        .input(
+            z.object({
+                id: z.string(),
+            })
+        )
+        .query(async ({ input, ctx }) => {
+
+            //get the room
+            const room = await ctx.prisma.meetingRoom.findUnique({
+                where: {
+                    id: input.id,
+                },
+            });
+
+            if (!room){
+                return {
+                    result: false,
+                    data: null,
+                    error: "Room not found",
+                };
+            }
+
+            //check if the user in the room
+            const userInRoom = await ctx.prisma.meetingRoomAttendee.findUnique({
+                where: {
+                    meetingRoomId_attendeeName: {
+                        meetingRoomId: input.id,
+                        attendeeName: ctx.request.req.session.user!.attendeeName,
+                    },
+                },
+            });
+
+            if (!userInRoom){
+                return {
+                    result: false,
+                    data: null,
+                    error: "User not in room",
+                };
+            }
+
+            return {
+                result: true,
+                data: room,
+            };
+        }),
+    getRoomBySecretKey: publicProcedure
+        .input(
+            z.object({
+                secretKey: z.string(),
+            })
+        )
+        .query(async ({ input, ctx }) => {
+
+            //get the room
+            const room = await ctx.prisma.meetingRoom.findUnique({
+                where: {
+                    secretKey: input.secretKey,
+                },
+            });
+
+            if (!room){
+                return {
+                    result: false,
+                    data: null,
+                    error: "Room not found",
+                };
+            }
+
+            //check if the user in the room
+            const userInRoom = await ctx.prisma.meetingRoomAttendee.findUnique({
+                where: {
+                    meetingRoomId_attendeeName: {
+                        meetingRoomId: room.id,
+                        attendeeName: ctx.request.req.session.user!.attendeeName,
+                    },
+                },
+            });
+
+            if (!userInRoom){
+                return {
+                    result: false,
+                    data: null,
+                    error: "User not in room",
+                };
+            }
+
+            return {
+                result: true,
+                data: room,
+            };
+        }),
     createRoom: publicProcedure
         .input(
             z.object({
@@ -125,7 +241,7 @@ export const roomRouter = router({
                 data: attendee,
             };
         }),
-    logout: publicProcedure
+    logout: protectedProcedure
         .mutation(async ({ ctx }) => {
 
             await logout(ctx.request);

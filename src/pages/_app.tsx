@@ -1,5 +1,4 @@
 import { type AppType } from "next/app";
-import Modal from "react-modal";
 
 import { trpc } from "../utils/trpc";
 
