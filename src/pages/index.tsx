@@ -43,6 +43,7 @@ type MeetingRoomType = {
 };
 
 type BasedModalComponentType = {
+    isOpen: boolean;
     closeModal: () => void;
 };
 
@@ -61,6 +62,7 @@ type JoinRoomModalComponentType = BasedModalComponentType & {
 type ModalOpeningState = "openingCreateRoomModal" | "openingJoinRoomModal" | "close";
 
 const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
+    isOpen,
     closeModal,
     createRoom,
 }) => {
@@ -128,7 +130,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
 
     return (
         <Modal
-            isOpen={true}
+            isOpen={isOpen}
             onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
@@ -223,6 +225,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
 };
 
 const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
+    isOpen,
     closeModal,
     joinRoom,
 }) => {
@@ -259,7 +262,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 
     return (
         <Modal
-            isOpen={true}
+            isOpen={isOpen}
             onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
@@ -377,12 +380,8 @@ const Home: NextPage = () => {
 
     return (
         <>
-            {
-                modalOpeningState === "openingCreateRoomModal" && <CreateRoomModalComponent closeModal={() => closeModal()} createRoom={handleCreateRoom} />
-            }
-            {
-                modalOpeningState === "openingJoinRoomModal" && <JoinRoomModalComponent closeModal={() => closeModal()} joinRoom={handleJoinRoom} />
-            }
+            <CreateRoomModalComponent isOpen={modalOpeningState === "openingCreateRoomModal"} closeModal={() => closeModal()} createRoom={handleCreateRoom} />
+            <JoinRoomModalComponent isOpen={modalOpeningState === "openingJoinRoomModal"} closeModal={() => closeModal()} joinRoom={handleJoinRoom} />
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
