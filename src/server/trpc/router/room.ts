@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { User } from "../../../types/User";
-import { login, logout } from "../../../utils/session";
+import { isLoggedIn, login, logout } from "../../../utils/session";
 import { router, publicProcedure } from "../trpc";
 
 export const roomRouter = router({
@@ -131,5 +131,14 @@ export const roomRouter = router({
             return {
                 result: true,
             }
+        }),
+    checkLogin: publicProcedure
+        .query(async ({ ctx }) => {
+
+            const result = await isLoggedIn(ctx.request);
+
+            return {
+                result: result,
+            };
         }),
 });
