@@ -15,6 +15,11 @@ export const sessionOptions: IronSessionOptions = {
   },
 };
 
+export const getSession = async (request : { req: NextApiRequest, res: NextApiResponse }) => {
+  const session = await getIronSession(request.req, request.res, sessionOptions);
+  return session;
+};
+
 export const login = async (request : { req: NextApiRequest, res: NextApiResponse }, user: User) => {
   const session = await getIronSession(request.req, request.res, sessionOptions);
   session.user = user;
