@@ -1,13 +1,9 @@
 // this file is a wrapper with defaults to be used in both API routes and `getServerSideProps` functions
 import { getIronSession, IronSessionOptions } from "iron-session";
 import { NextApiRequest, NextApiResponse } from "next";
+import { User } from "../types/User";
 
-export type User = {
-  meetingRoomId: string;
-  attendeeName : string;
-};
-
-export const sessionOptions: IronSessionOptions = {
+const sessionOptions: IronSessionOptions = {
   password: process.env.SECRET_COOKIE_PASSWORD as string,
   cookieName: "nextjs-iron-session",
   cookieOptions: {

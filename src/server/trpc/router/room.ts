@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { login, logout, User } from "../../../utils/session";
+import { User } from "../../../types/User";
+import { login, logout } from "../../../utils/session";
 import { router, publicProcedure } from "../trpc";
 
 export const roomRouter = router({
