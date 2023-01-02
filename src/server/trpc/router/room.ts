@@ -23,9 +23,35 @@ export const roomRouter = router({
                 };
             }
 
+            const attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
+                where: {
+                    id: user.meetingRoomAttendeeId,
+                },
+            });
+
+            if (!attendee){
+                return {
+                    result: false,
+                    data: null,
+                    error: "Attendee not found",
+                };
+            }
+
+            const attendeeDatetimeRange = await ctx.prisma.meetingRoomAttendeeDatetimeRange.findMany({
+                where: {
+                    meetingRoomAttendeeId: attendee.id,
+                },
+            });
+
+            const finalData = {
+                room,
+                attendee,
+                attendeeDatetimeRange,
+            }
+
             return {
                 result: true,
-                data: room,
+                data: finalData,
             };
         }),
     getRoomById: protectedProcedure
@@ -54,10 +80,7 @@ export const roomRouter = router({
             //check if the user in the room
             const userInRoom = await ctx.prisma.meetingRoomAttendee.findUnique({
                 where: {
-                    meetingRoomId_attendeeName: {
-                        meetingRoomId: input.id,
-                        attendeeName: ctx.request.req.session.user!.attendeeName,
-                    },
+                    id: ctx.request.req.session.user!.meetingRoomAttendeeId,
                 },
             });
 
@@ -100,10 +123,7 @@ export const roomRouter = router({
             //check if the user in the room
             const userInRoom = await ctx.prisma.meetingRoomAttendee.findUnique({
                 where: {
-                    meetingRoomId_attendeeName: {
-                        meetingRoomId: room.id,
-                        attendeeName: ctx.request.req.session.user!.attendeeName,
-                    },
+                    id: ctx.request.req.session.user!.meetingRoomAttendeeId,
                 },
             });
 
@@ -212,10 +232,7 @@ export const roomRouter = router({
             //check if the user is already in the room
             let attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
                 where: {
-                    meetingRoomId_attendeeName : {
-                        meetingRoomId: room.id,
-                        attendeeName: input.attendeeName,
-                    }
+                    id : ctx.request.req.session.user!.meetingRoomAttendeeId,
                 },
             });
 

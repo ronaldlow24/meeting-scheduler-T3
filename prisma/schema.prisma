@@ -23,17 +23,23 @@ model MeetingRoom {
 }
 
 model MeetingRoomAttendee {
+  id        String   @id @default(cuid())
   meetingRoomId String
   attendeeName String
   isHost Boolean
   createdAt DateTime @default(now())
-  @@unique([meetingRoomId, attendeeName])
+}
+
+enum MeetingRoomAttendeeDatetimeRangeDatetimeMode {
+  FREE
+  BUSY
 }
 
 model MeetingRoomAttendeeDatetimeRange {
   id        String   @id @default(cuid())
   meetingRoomAttendeeId String
-  datetimeMode String
+  datetimeMode MeetingRoomAttendeeDatetimeRangeDatetimeMode
   startDateTime DateTime
   endDateTime DateTime
+  createdAt DateTime @default(now())
 }

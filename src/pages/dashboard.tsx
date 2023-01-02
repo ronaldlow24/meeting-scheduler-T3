@@ -1,13 +1,21 @@
-import { type NextPage } from "next";
+import { type NextPage, GetServerSideProps  } from "next";
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect, useState } from "react";
 import Router from "next/router";
+import type { MeetingRoomAttendeeDatetimeRange } from "@prisma/client";
 
 const Dashboard: NextPage = () => {
 
-    const getRoomQuery = trpc.room.getRoomBySession.useQuery();
+    
+    const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>([]);
+
+    useEffect(() => {
+        if (getRoomQuery.data) {
+            setDatetimeRange(getRoomQuery.data.data?.attendeeDatetimeRange ?? []);
+        }
+    }, [getRoomQuery.data]);
 
     return (
         <>
@@ -37,6 +45,19 @@ const Dashboard: NextPage = () => {
         </>
     );
 };
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+
+    const getRoomQuery = trpc.room.getRoomBySession.useQuery();
+
+    return {
+        props: {
+            getRoomQuery.data
+        },
+    };
+}
+
+
 
 export default Dashboard;
 

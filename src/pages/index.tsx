@@ -1,4 +1,4 @@
-import { type NextPage } from "next";
+import { GetServerSideProps, type NextPage } from "next";
 import Modal from "react-modal";
 
 import { trpc } from "../utils/trpc";
@@ -332,15 +332,8 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 const Home: NextPage = () => {
 
     //if user is logged in, redirect to dashboard
-    const isLoggedInQuery = trpc.room.checkLogin.useQuery();
     const createRoomMutation = trpc.room.createRoom.useMutation();
     const joinRoomMutation = trpc.room.joinRoom.useMutation();
-
-    useEffect(() => {
-        if (isLoggedInQuery.data?.result === true) {
-            Router.push("/dashboard");
-        }
-    }, []);
 
     const closeModal = () => {
         setModalOpeningState("close");
@@ -416,6 +409,18 @@ const Home: NextPage = () => {
         </>
     );
 };
+
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+
+    if (context.req.session.user) {
+        Router.push("/dashboard");
+    }
+
+    return {
+        props: {},
+    };
+}
 
 export default Home;
 
