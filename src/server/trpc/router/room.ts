@@ -41,6 +41,7 @@ export const roomRouter = router({
                 data: {
                     meetingRoomId: creationResult.id,
                     attendeeName: input.hostName,
+                    isHost : true,
                 },
             });
 
@@ -107,6 +108,7 @@ export const roomRouter = router({
                     data: {
                         meetingRoomId: room.id,
                         attendeeName: input.attendeeName,
+                        isHost : false,
                     },
                 });
             }
