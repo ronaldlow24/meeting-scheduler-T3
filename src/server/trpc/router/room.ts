@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import { login, logout, User } from "../../../utils/session";
 import { router, publicProcedure } from "../trpc";
 
 export const roomRouter = router({
@@ -7,6 +7,7 @@ export const roomRouter = router({
         .input(
             z.object({
                 title: z.string(),
+                hostName : z.string(),
                 startTime: z.date(),
                 endTime: z.date(),
                 numberOfAttendees: z.number(),
@@ -27,11 +28,28 @@ export const roomRouter = router({
                 },
             });
 
-            if (!creationResult)
+            if (!creationResult){
                 return {
                     result: false,
                     data: null,
                 };
+            }
+
+            //create one attendee as host
+            const host = await ctx.prisma.meetingRoomAttendee.create({
+                data: {
+                    meetingRoomId: creationResult.id,
+                    attendeeName: input.hostName,
+                },
+            });
+
+            const user = {
+                meetingRoomId: creationResult.id,
+                attendeeName: host.attendeeName,
+            } as User;
+
+            await login(ctx.request, user);
+
             return {
                 result: true,
                 data: creationResult,
@@ -41,7 +59,7 @@ export const roomRouter = router({
         .input(
             z.object({
                 secretKey: z.string(),
-                name: z.string(),
+                attendeeName: z.string(),
             })
         )
         .mutation(async ({ input, ctx }) => {
@@ -78,7 +96,7 @@ export const roomRouter = router({
                 where: {
                     meetingRoomId_attendeeName : {
                         meetingRoomId: room.id,
-                        attendeeName: input.name,
+                        attendeeName: input.attendeeName,
                     }
                 },
             });
@@ -87,16 +105,30 @@ export const roomRouter = router({
                 attendee = await ctx.prisma.meetingRoomAttendee.create({
                     data: {
                         meetingRoomId: room.id,
-                        attendeeName: input.name,
+                        attendeeName: input.attendeeName,
                     },
                 });
             }
+
+            const user = {
+                meetingRoomId: room.id,
+                attendeeName: attendee.attendeeName,
+            } as User;
+
+            await login(ctx.request, user);
+
             return {
                 result: true,
                 data: attendee,
             };
         }),
-    getAll: publicProcedure.query(({ ctx }) => {
-        return ctx.prisma.meetingRoom.findMany();
-    }),
+    logout: publicProcedure
+        .mutation(async ({ ctx }) => {
+
+            await logout(ctx.request);
+
+            return {
+                result: true,
+            }
+        }),
 });

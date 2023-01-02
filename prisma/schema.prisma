@@ -25,6 +25,7 @@ model MeetingRoom {
 model MeetingRoomAttendee {
   meetingRoomId String
   attendeeName String
+  isHost Boolean
   createdAt DateTime @default(now())
   @@unique([meetingRoomId, attendeeName])
 }

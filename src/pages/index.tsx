@@ -17,30 +17,7 @@ const modalCustomStyles = {
     },
 };
 
-
 const DefaultNumberOfAttendees = 2;
-
-type DatetimeRange = {
-    datetimeMode: "FREE" | "BUSY";
-    startDateTime: Date;
-    endDatetime: Date;
-};
-
-type AttendeeType = {
-    name : string;
-    datetimeRange: DatetimeRange[];
-};
-
-type MeetingRoomType = {
-    id: string;
-    title : string;
-    availableStartDateTime: Date;
-    availableEndDateTime: Date;
-    attendees: AttendeeType[];
-    actualStartTime: Date;
-    actualEndTime: Date;
-    createdAt: Date;
-};
 
 type BasedModalComponentType = {
     isOpen: boolean;
@@ -49,7 +26,7 @@ type BasedModalComponentType = {
 
 type CreateRoomModalComponentType = BasedModalComponentType & {
     createRoom: (
-        title: string, startTime : Date, endTime : Date, numberOfAttendees : number
+        title: string, hostName: string, startTime : Date, endTime : Date, numberOfAttendees : number
     ) => Promise<boolean|undefined>;
 };
 
@@ -67,6 +44,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
     createRoom,
 }) => {
     const [roomTitle, setRoomTitle] = useState<string>("");
+    const [hostName, setHostName] = useState<string>("");
     const [startTime, setStartTime] = useState<Date>(new Date());
     const [endTime, setEndTime] = useState<Date>(new Date());
     const [numberOfAttendees, setNumberOfAttendees] = useState<number>(DefaultNumberOfAttendees);
@@ -86,6 +64,11 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
         //validate all input
         if (roomTitle.trim() === "") {
             toast.error("Room title must not be empty");
+            return;
+        }
+
+        if (hostName.trim() === "") {
+            toast.error("Host name must not be empty");
             return;
         }
 
@@ -109,7 +92,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
             return;
         }
 
-        const result = await createRoom(roomTitle, startTime, endTime, numberOfAttendees);
+        const result = await createRoom(roomTitle, hostName, startTime, endTime, numberOfAttendees);
 
         if (!result) {
             toast.error("Failed to create room");
@@ -122,6 +105,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
 
     const clearAndCloseModal = () => {
         setRoomTitle("");
+        setHostName("");
         setStartTime(new Date());
         setEndTime(new Date());
         setNumberOfAttendees(DefaultNumberOfAttendees);
@@ -152,6 +136,20 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                             placeholder="Meeting Room Title"
                             value={roomTitle}
                             onChange={(e) => setRoomTitle(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="row mt-3">
+                <div className="col">
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Host Name"
+                            value={hostName}
+                            onChange={(e) => setHostName(e.target.value)}
                         />
                     </div>
                 </div>
@@ -341,10 +339,11 @@ const Home: NextPage = () => {
         setModalOpeningState("close");
     };
 
-    const handleCreateRoom = async (title: string, startTime : Date, endTime : Date, numberOfAttendees : number) => {
+    const handleCreateRoom = async (title: string, hostName: string, startTime : Date, endTime : Date, numberOfAttendees : number) => {
 
         const createRoomResult = await createRoomMutation.mutateAsync({
             title,
+            hostName,
             startTime,
             endTime,
             numberOfAttendees
@@ -361,11 +360,11 @@ const Home: NextPage = () => {
         return createRoomResult.result;
     };
 
-    const handleJoinRoom = async (secretKey: string, name: string) => {
+    const handleJoinRoom = async (secretKey: string, attendeeName: string) => {
 
         const joinRoomResult = await joinRoomMutation.mutateAsync({
             secretKey,
-            name
+            attendeeName
         });
 
         if(!joinRoomResult.result){
