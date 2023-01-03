@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Router from "next/router";
 import type { MeetingRoomAttendeeDatetimeRange } from "@prisma/client";
 
-const Dashboard: NextPage = () => {
+const Dashboard: NextPage = (data) => {
 
     
     const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>([]);
@@ -44,13 +44,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const getRoomQuery = trpc.room.getRoomBySession.useQuery();
 
-    const getRoomQueryResult = await getRoomQuery;
-
-    const prop = getRoomQueryResult.data;
+    const data = getRoomQuery.data;
 
     return {
         props: {
-            prop
+            data
         },
     };
 }
