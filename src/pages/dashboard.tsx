@@ -11,12 +11,6 @@ const Dashboard: NextPage = () => {
     
     const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>([]);
 
-    useEffect(() => {
-        if (getRoomQuery.data) {
-            setDatetimeRange(getRoomQuery.data.data?.attendeeDatetimeRange ?? []);
-        }
-    }, [getRoomQuery.data]);
-
     return (
         <>
             <main>
@@ -50,9 +44,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const getRoomQuery = trpc.room.getRoomBySession.useQuery();
 
+    const getRoomQueryResult = await getRoomQuery;
+
+    const prop = getRoomQueryResult.data;
+
     return {
         props: {
-            getRoomQuery.data
+            prop
         },
     };
 }
