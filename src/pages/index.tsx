@@ -329,7 +329,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
     );
 };
 
-const Home: NextPage = () => {
+const Home: NextPage = (data) => {
 
     //if user is logged in, redirect to dashboard
     const createRoomMutation = trpc.room.createRoom.useMutation();
