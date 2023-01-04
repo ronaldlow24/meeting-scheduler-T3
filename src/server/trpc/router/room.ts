@@ -1,150 +1,61 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { User } from "../../../types/User";
 import { isLoggedIn, login, logout } from "../../../utils/session";
 import { router, publicProcedure, protectedProcedure } from "../trpc";
 
 export const roomRouter = router({
-    getRoomBySession: protectedProcedure
-        .query(async ({ ctx }) => {
+    getRoomBySession: protectedProcedure.query(async ({ ctx }) => {
+        const user = ctx.request.req.session.user!;
 
-            const user = ctx.request.req.session.user!;
+        const room = await ctx.prisma.meetingRoom.findUnique({
+            where: {
+                id: user.meetingRoomId,
+            },
+        });
 
-            const room = await ctx.prisma.meetingRoom.findUnique({
+        if (!room) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+            });
+        }
+
+        const attendee = await ctx.prisma.meetingRoomAttendee.findMany({
+            where: {
+                meetingRoomId: room.id,
+            },
+        });
+
+        if (attendee.length === 0) {
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+            });
+        }
+
+        const meetingRoomAttendeeIds = attendee.map((item) => item.id);
+
+        const attendeeDatetimeRange =
+            await ctx.prisma.meetingRoomAttendeeDatetimeRange.findMany({
                 where: {
-                    id: user.meetingRoomId,
+                    meetingRoomAttendeeId: {
+                        in: meetingRoomAttendeeIds,
+                    },
                 },
             });
 
-            if (!room){
-                return {
-                    result: false,
-                    data: null,
-                    error: "Room not found",
-                };
-            }
+        const finalData = {
+            room,
+            attendee,
+            attendeeDatetimeRange,
+        };
 
-            const attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
-                where: {
-                    id: user.meetingRoomAttendeeId,
-                },
-            });
-
-            if (!attendee){
-                return {
-                    result: false,
-                    data: null,
-                    error: "Attendee not found",
-                };
-            }
-
-            const attendeeDatetimeRange = await ctx.prisma.meetingRoomAttendeeDatetimeRange.findMany({
-                where: {
-                    meetingRoomAttendeeId: attendee.id,
-                },
-            });
-
-            const finalData = {
-                room,
-                attendee,
-                attendeeDatetimeRange,
-            }
-
-            return {
-                result: true,
-                data: finalData,
-            };
-        }),
-    getRoomById: protectedProcedure
-        .input(
-            z.object({
-                id: z.string(),
-            })
-        )
-        .query(async ({ input, ctx }) => {
-
-            //get the room
-            const room = await ctx.prisma.meetingRoom.findUnique({
-                where: {
-                    id: input.id,
-                },
-            });
-
-            if (!room){
-                return {
-                    result: false,
-                    data: null,
-                    error: "Room not found",
-                };
-            }
-
-            //check if the user in the room
-            const userInRoom = await ctx.prisma.meetingRoomAttendee.findUnique({
-                where: {
-                    id: ctx.request.req.session.user!.meetingRoomAttendeeId,
-                },
-            });
-
-            if (!userInRoom){
-                return {
-                    result: false,
-                    data: null,
-                    error: "User not in room",
-                };
-            }
-
-            return {
-                result: true,
-                data: room,
-            };
-        }),
-    getRoomBySecretKey: publicProcedure
-        .input(
-            z.object({
-                secretKey: z.string(),
-            })
-        )
-        .query(async ({ input, ctx }) => {
-
-            //get the room
-            const room = await ctx.prisma.meetingRoom.findUnique({
-                where: {
-                    secretKey: input.secretKey,
-                },
-            });
-
-            if (!room){
-                return {
-                    result: false,
-                    data: null,
-                    error: "Room not found",
-                };
-            }
-
-            //check if the user in the room
-            const userInRoom = await ctx.prisma.meetingRoomAttendee.findUnique({
-                where: {
-                    id: ctx.request.req.session.user!.meetingRoomAttendeeId,
-                },
-            });
-
-            if (!userInRoom){
-                return {
-                    result: false,
-                    data: null,
-                    error: "User not in room",
-                };
-            }
-
-            return {
-                result: true,
-                data: room,
-            };
-        }),
+        return finalData;
+    }),
     createRoom: publicProcedure
         .input(
             z.object({
                 title: z.string(),
-                hostName : z.string(),
+                hostName: z.string(),
                 startTime: z.date(),
                 endTime: z.date(),
                 numberOfAttendees: z.number(),
@@ -165,11 +76,10 @@ export const roomRouter = router({
                 },
             });
 
-            if (!creationResult){
-                return {
-                    result: false,
-                    data: null,
-                };
+            if (!creationResult) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                });
             }
 
             //create one attendee as host
@@ -177,9 +87,15 @@ export const roomRouter = router({
                 data: {
                     meetingRoomId: creationResult.id,
                     attendeeName: input.hostName,
-                    isHost : true,
+                    isHost: true,
                 },
             });
+
+            if (!host) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                });
+            }
 
             const user = {
                 meetingRoomId: creationResult.id,
@@ -188,10 +104,7 @@ export const roomRouter = router({
 
             await login(ctx.request, user);
 
-            return {
-                result: true,
-                data: creationResult,
-            };
+            return creationResult;
         }),
     joinRoom: publicProcedure
         .input(
@@ -208,12 +121,11 @@ export const roomRouter = router({
                 },
             });
 
-            if (!room)
-                return {
-                    result: false,
-                    data: null,
-                    error: "Room not found",
-                };
+            if (!room) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                });
+            }
 
             //check if the room is full
             const attendees = await ctx.prisma.meetingRoomAttendee.findMany({
@@ -232,16 +144,16 @@ export const roomRouter = router({
             //check if the user is already in the room
             let attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
                 where: {
-                    id : ctx.request.req.session.user!.meetingRoomAttendeeId,
+                    id: ctx.request.req.session.user!.meetingRoomAttendeeId,
                 },
             });
 
-            if (!attendee){
+            if (!attendee) {
                 attendee = await ctx.prisma.meetingRoomAttendee.create({
                     data: {
                         meetingRoomId: room.id,
                         attendeeName: input.attendeeName,
-                        isHost : false,
+                        isHost: false,
                     },
                 });
             }
@@ -258,22 +170,18 @@ export const roomRouter = router({
                 data: attendee,
             };
         }),
-    logout: protectedProcedure
-        .mutation(async ({ ctx }) => {
+    logout: protectedProcedure.mutation(async ({ ctx }) => {
+        await logout(ctx.request);
 
-            await logout(ctx.request);
+        return {
+            result: true,
+        };
+    }),
+    checkLogin: publicProcedure.query(async ({ ctx }) => {
+        const result = await isLoggedIn(ctx.request);
 
-            return {
-                result: true,
-            }
-        }),
-    checkLogin: publicProcedure
-        .query(async ({ ctx }) => {
-
-            const result = await isLoggedIn(ctx.request);
-
-            return {
-                result: result,
-            };
-        }),
+        return {
+            result: result,
+        };
+    }),
 });

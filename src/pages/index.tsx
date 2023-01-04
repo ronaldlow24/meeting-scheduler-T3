@@ -25,43 +25,45 @@ type BasedModalComponentType = {
     closeModal: () => void;
 };
 
-type CreateRoomModalComponentType = BasedModalComponentType & {
-    createRoom: (
-        title: string, hostName: string, startTime : Date, endTime : Date, numberOfAttendees : number
-    ) => Promise<boolean|undefined>;
-};
+type ModalOpeningState =
+    | "openingCreateRoomModal"
+    | "openingJoinRoomModal"
+    | "close";
 
-type JoinRoomModalComponentType = BasedModalComponentType & {
-    joinRoom: (
-        secretKey: string, name: string
-    ) => Promise<boolean|undefined>;
-};
-
-type ModalOpeningState = "openingCreateRoomModal" | "openingJoinRoomModal" | "close";
-
-const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
+const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
     isOpen,
     closeModal,
-    createRoom,
 }) => {
+    const createRoomMutation = trpc.room.createRoom.useMutation();
+
     const [roomTitle, setRoomTitle] = useState<string>("");
     const [hostName, setHostName] = useState<string>("");
     const [startTime, setStartTime] = useState<Date>(new Date());
     const [endTime, setEndTime] = useState<Date>(new Date());
-    const [numberOfAttendees, setNumberOfAttendees] = useState<number>(DefaultNumberOfAttendees);
+    const [numberOfAttendees, setNumberOfAttendees] = useState<number>(
+        DefaultNumberOfAttendees
+    );
 
-    const handleChangeNumberOfAttendees = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const [secretKey, setSecretKey] = useState<string>("");
+
+    const handleChangeNumberOfAttendees = (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const inputValue = parseInt(e.target.value);
 
         if (inputValue < DefaultNumberOfAttendees) {
-            toast.error(`Number of attendees must be greater than ${DefaultNumberOfAttendees-1}`);
+            toast.error(
+                `Number of attendees must be greater than ${
+                    DefaultNumberOfAttendees - 1
+                }`
+            );
             return;
         }
 
         setNumberOfAttendees(inputValue);
     };
 
-    const handleSubmit = async () =>{
+    const handleSubmit = async () => {
         //validate all input
         if (roomTitle.trim() === "") {
             toast.error("Room title must not be empty");
@@ -89,20 +91,44 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
         }
 
         if (numberOfAttendees < DefaultNumberOfAttendees) {
-            toast.error(`Number of attendees must be greater than ${DefaultNumberOfAttendees-1}`);
+            toast.error(
+                `Number of attendees must be greater than ${
+                    DefaultNumberOfAttendees - 1
+                }`
+            );
             return;
         }
 
-        const result = await createRoom(roomTitle, hostName, startTime, endTime, numberOfAttendees);
+        const createRoomResult = await createRoomMutation.mutateAsync({
+            title: roomTitle,
+            hostName,
+            startTime,
+            endTime,
+            numberOfAttendees,
+        });
 
-        if (!result) {
+        if (createRoomMutation.isError || !createRoomResult) {
             toast.error("Failed to create room");
             return;
         }
 
-        clearAndCloseModal();
-    }
+        toast.success(
+            `Room created successfully, your secret is copied to clipboard, please save it immediately!`,
+            {
+                autoClose: false,
+            }
+        );
 
+        navigator.clipboard.writeText(createRoomResult.secretKey);
+
+        toast.info(`Your secret key is ${createRoomResult.secretKey}`, {
+            autoClose: false,
+        });
+
+        setTimeout(() => {
+            clearAndCloseModal();
+        }, 5000);
+    };
 
     const clearAndCloseModal = () => {
         setRoomTitle("");
@@ -122,9 +148,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
         >
             <div className="row">
                 <div className="col">
-                    <h2>
-                        Create Room
-                    </h2>
+                    <h2>Create Room</h2>
                 </div>
             </div>
 
@@ -135,6 +159,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                             type="text"
                             className="form-control"
                             placeholder="Meeting Room Title"
+                            disabled={createRoomMutation.isLoading}
                             value={roomTitle}
                             onChange={(e) => setRoomTitle(e.target.value)}
                         />
@@ -149,6 +174,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                             type="text"
                             className="form-control"
                             placeholder="Host Name"
+                            disabled={createRoomMutation.isLoading}
                             value={hostName}
                             onChange={(e) => setHostName(e.target.value)}
                         />
@@ -162,8 +188,11 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                         <input
                             type="datetime-local"
                             className="form-control"
+                            disabled={createRoomMutation.isLoading}
                             value={startTime.toISOString().slice(0, 16)}
-                            onChange={(e) => setStartTime(new Date(e.target.value))}
+                            onChange={(e) =>
+                                setStartTime(new Date(e.target.value))
+                            }
                         />
                     </div>
                 </div>
@@ -175,8 +204,11 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                         <input
                             type="datetime-local"
                             className="form-control"
+                            disabled={createRoomMutation.isLoading}
                             value={endTime.toISOString().slice(0, 16)}
-                            onChange={(e) => setEndTime(new Date(e.target.value))}
+                            onChange={(e) =>
+                                setEndTime(new Date(e.target.value))
+                            }
                         />
                     </div>
                 </div>
@@ -189,6 +221,7 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                             type="number"
                             className="form-control"
                             placeholder="Number of Attendees"
+                            disabled={createRoomMutation.isLoading}
                             value={numberOfAttendees}
                             onChange={(e) => handleChangeNumberOfAttendees(e)}
                         />
@@ -201,6 +234,8 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                     <button
                         type="button"
                         className="btn btn-success w-100"
+                        disabled={createRoomMutation.isLoading}
+                        hidden={createRoomMutation.isSuccess}
                         onClick={handleSubmit}
                     >
                         Save Change
@@ -213,6 +248,8 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
                     <button
                         type="button"
                         className="btn btn-primary w-100"
+                        disabled={createRoomMutation.isLoading}
+                        hidden={createRoomMutation.isSuccess}
                         onClick={clearAndCloseModal}
                     >
                         Close
@@ -223,39 +260,52 @@ const CreateRoomModalComponent: React.FC<CreateRoomModalComponentType> = ({
     );
 };
 
-const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
+const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
     isOpen,
     closeModal,
-    joinRoom,
 }) => {
-    const [secret, setSecret] = useState<string>("");
-    const [name, setName] = useState<string>("");
+    const joinRoomMutation = trpc.room.joinRoom.useMutation();
+
+    const [secretKey, setSecretKey] = useState<string>("");
+    const [attendeeName, setAttendeeName] = useState<string>("");
 
     const handleSubmit = async () => {
         //validate all input
-        if (secret.trim() === "") {
+        if (secretKey.trim() === "") {
             toast.error("Secret must not be empty");
             return;
         }
 
-        if (name.trim() === "") {
+        if (attendeeName.trim() === "") {
             toast.error("Name must not be empty");
             return;
         }
 
-        const result = await joinRoom(secret, name);
+        const joinRoomResult = await joinRoomMutation.mutateAsync({
+            secretKey,
+            attendeeName,
+        });
 
-        if (!result) {
+        if (joinRoomMutation.isError) {
             toast.error("Failed to join room");
             return;
         }
 
-        clearAndCloseModal();
+        if (!joinRoomResult.result) {
+            toast.error(joinRoomResult.error);
+            return;
+        }
+
+        toast.success("Joined room successfully, will redirect to room page");
+
+        setTimeout(() => {
+            Router.push("/dashboard");
+        }, 1300);
     };
 
     const clearAndCloseModal = () => {
-        setSecret("");
-        setName("");
+        setSecretKey("");
+        setAttendeeName("");
         closeModal();
     };
 
@@ -268,9 +318,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
         >
             <div className="row">
                 <div className="col">
-                    <h2>
-                        Join Room
-                    </h2>
+                    <h2>Join Room</h2>
                 </div>
             </div>
 
@@ -280,9 +328,10 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
                         <input
                             type="text"
                             className="form-control"
-                            placeholder="Secret"
-                            value={secret}
-                            onChange={(e) => setSecret(e.target.value)}
+                            placeholder="Secret Key"
+                            disabled={joinRoomMutation.isLoading}
+                            value={secretKey}
+                            onChange={(e) => setSecretKey(e.target.value)}
                         />
                     </div>
                 </div>
@@ -295,8 +344,9 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
                             type="text"
                             className="form-control"
                             placeholder="Name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            disabled={joinRoomMutation.isLoading}
+                            value={attendeeName}
+                            onChange={(e) => setAttendeeName(e.target.value)}
                         />
                     </div>
                 </div>
@@ -307,6 +357,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
                     <button
                         type="button"
                         className="btn btn-success w-100"
+                        disabled={joinRoomMutation.isLoading}
                         onClick={handleSubmit}
                     >
                         Join Room
@@ -319,6 +370,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
                     <button
                         type="button"
                         className="btn btn-primary w-100"
+                        disabled={joinRoomMutation.isLoading}
                         onClick={clearAndCloseModal}
                     >
                         Close
@@ -330,57 +382,23 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 };
 
 const Home: NextPage = (data) => {
-
-    //if user is logged in, redirect to dashboard
-    const createRoomMutation = trpc.room.createRoom.useMutation();
-    const joinRoomMutation = trpc.room.joinRoom.useMutation();
-
     const closeModal = () => {
         setModalOpeningState("close");
     };
 
-    const handleCreateRoom = async (title: string, hostName: string, startTime : Date, endTime : Date, numberOfAttendees : number) => {
-
-        const createRoomResult = await createRoomMutation.mutateAsync({
-            title,
-            hostName,
-            startTime,
-            endTime,
-            numberOfAttendees
-        });
-
-        if(!createRoomResult.result){
-            toast.error("Failed to create room");
-            return;
-        }
-
-        toast.success(`Room created successfully, your secret is copied to clipboard, please save it immediately!`);
-        navigator.clipboard.writeText(createRoomResult.data?.secretKey!);
-
-        return createRoomResult.result;
-    };
-
-    const handleJoinRoom = async (secretKey: string, attendeeName: string) => {
-
-        const joinRoomResult = await joinRoomMutation.mutateAsync({
-            secretKey,
-            attendeeName
-        });
-
-        if(!joinRoomResult.result){
-            toast.error(joinRoomResult.error);
-            return;
-        }
-
-        return joinRoomResult.result;
-    };
-
-    const [modalOpeningState, setModalOpeningState] = useState<ModalOpeningState>("close");
+    const [modalOpeningState, setModalOpeningState] =
+        useState<ModalOpeningState>("close");
 
     return (
         <>
-            <CreateRoomModalComponent isOpen={modalOpeningState === "openingCreateRoomModal"} closeModal={() => closeModal()} createRoom={handleCreateRoom} />
-            <JoinRoomModalComponent isOpen={modalOpeningState === "openingJoinRoomModal"} closeModal={() => closeModal()} joinRoom={handleJoinRoom} />
+            <CreateRoomModalComponent
+                isOpen={modalOpeningState === "openingCreateRoomModal"}
+                closeModal={() => closeModal()}
+            />
+            <JoinRoomModalComponent
+                isOpen={modalOpeningState === "openingJoinRoomModal"}
+                closeModal={() => closeModal()}
+            />
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
@@ -389,7 +407,11 @@ const Home: NextPage = (data) => {
                             <button
                                 type="button"
                                 className="btn btn-outline-success"
-                                onClick={() => setModalOpeningState("openingCreateRoomModal")}
+                                onClick={() =>
+                                    setModalOpeningState(
+                                        "openingCreateRoomModal"
+                                    )
+                                }
                             >
                                 Create a room
                             </button>
@@ -398,7 +420,9 @@ const Home: NextPage = (data) => {
                             <button
                                 type="button"
                                 className="btn btn-outline-primary"
-                                onClick={() => setModalOpeningState("openingJoinRoomModal")}
+                                onClick={() =>
+                                    setModalOpeningState("openingJoinRoomModal")
+                                }
                             >
                                 Join a room
                             </button>
@@ -410,9 +434,7 @@ const Home: NextPage = (data) => {
     );
 };
 
-
 export const getServerSideProps: GetServerSideProps = async (context) => {
-
     if (context.req.session.user) {
         Router.push("/dashboard");
     }
@@ -420,7 +442,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
         props: {},
     };
-}
+};
 
 export default Home;
-

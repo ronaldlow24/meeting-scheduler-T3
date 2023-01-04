@@ -4,15 +4,17 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect, useState } from "react";
 import Router from "next/router";
-import type { MeetingRoomAttendeeDatetimeRange } from "@prisma/client";
+import type { MeetingRoom, MeetingRoomAttendee, MeetingRoomAttendeeDatetimeRange } from "@prisma/client";
 
 type DashboardProps = {
-    data: MeetingRoomAttendeeDatetimeRange[];
+    room: MeetingRoom;
+    attendee: MeetingRoomAttendee[];
+    attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
 };
 
 const Dashboard: NextPage<DashboardProps> = (props) => {
     
-    const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>(props.data);
+    const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>(props.attendeeDatetimeRange);
 
     return (
         <>
@@ -47,10 +49,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const getRoomQuery = trpc.room.getRoomBySession.useQuery();
 
-    const data = getRoomQuery.data;
+    if (getRoomQuery.isError) {
+        toast.error(getRoomQuery.error.message);
+        return {
+            props: {},
+        };
+    }
 
     const result : DashboardProps = {
-        data : data?.data?.attendeeDatetimeRange ?? []
+        room: getRoomQuery.data!.room,
+        attendee: getRoomQuery.data!.attendee,
+        attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
     };
 
     return {
