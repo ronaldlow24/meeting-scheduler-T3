@@ -6,10 +6,13 @@ import { useEffect, useState } from "react";
 import Router from "next/router";
 import type { MeetingRoomAttendeeDatetimeRange } from "@prisma/client";
 
-const Dashboard: NextPage = (data) => {
+type DashboardProps = {
+    data: MeetingRoomAttendeeDatetimeRange[];
+};
 
+const Dashboard: NextPage<DashboardProps> = (props) => {
     
-    const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>([]);
+    const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>(props.data);
 
     return (
         <>
@@ -46,14 +49,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const data = getRoomQuery.data;
 
+    const result : DashboardProps = {
+        data : data?.data?.attendeeDatetimeRange ?? []
+    };
+
     return {
-        props: {
-            data
-        },
+        props: result,
     };
 }
-
-
 
 export default Dashboard;
 
