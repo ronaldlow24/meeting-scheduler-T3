@@ -217,8 +217,19 @@ export const roomRouter = router({
                     code: "NOT_FOUND",
                 });
             }
+
+            const room = await ctx.prisma.meetingRoom.findUnique({
+                where: {
+                    id: attendee.meetingRoomId,
+                },
+            });
+
+            if (!room || room.actualStartTime != null) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                });
+            }
             
-            //check if the startDateTime >= input.startDateTime and startDateTime <= input.startDateTime OR endDateTime >= input.startDateTime and endDateTime <= input.endDateTime
             const existingAttendeeDatetimeRange = await ctx.prisma.meetingRoomAttendeeDatetimeRange.findMany({
                 where: {
                     meetingRoomAttendeeId: attendee.id,
@@ -244,7 +255,7 @@ export const roomRouter = router({
                 });
             }
 
-            const attendeeDatetimeRange = await ctx.prisma.meetingRoomAttendeeDatetimeRange.create(
+            const s = await ctx.prisma.meetingRoomAttendeeDatetimeRange.create(
                 {
                     data: {
                         meetingRoomAttendeeId: attendee.id,
@@ -255,13 +266,13 @@ export const roomRouter = router({
                 }
             );
 
-            return attendeeDatetimeRange;
+            return s;
         }),
     confirmMeetingByHost : protectedProcedure
         .input(
             z.object({
-                startTime: z.date(),
-                endTime: z.date(),
+                startDatetime: z.date(),
+                endDatetime: z.date(),
             })
         )
         .mutation(async ({ input, ctx }) => {
@@ -285,8 +296,8 @@ export const roomRouter = router({
                     id: user!.meetingRoomId,
                 },
                 data: {
-                    actualStartTime: input.startTime,
-                    actualEndTime: input.endTime,
+                    actualStartTime: input.startDatetime,
+                    actualEndTime: input.endDatetime,
                 },
             });
 

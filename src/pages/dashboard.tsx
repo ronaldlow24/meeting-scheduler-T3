@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect, useState } from "react";
 import Router from "next/router";
-import type { MeetingRoom, MeetingRoomAttendee, MeetingRoomAttendeeDatetimeRange } from "@prisma/client";
+import type { MeetingRoom, MeetingRoomAttendee, MeetingRoomAttendeeDatetimeRange, MeetingRoomAttendeeDatetimeRangeDatetimeMode } from "@prisma/client";
 
 type DashboardProps = {
     room: MeetingRoom;
@@ -13,10 +13,79 @@ type DashboardProps = {
 };
 
 const Dashboard: NextPage<DashboardProps> = (props) => {
+    const confirmMeetingByHostMutation = trpc.room.confirmMeetingByHost.useMutation();
+    const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
     
     const [dashboardProp, setDashboardProp] = useState<DashboardProps>(props);
+    const [startDatetime , setStartDatetime] = useState<Date>(new Date());
+    const [endDatetime , setEndDatetime] = useState<Date>(new Date());
+    const [datetimeMode , setDatetimeMode] = useState<MeetingRoomAttendeeDatetimeRangeDatetimeMode>("BUSY");
+
+    const [actualStartDatetime , setActualStartDatetime] = useState<Date>(new Date());
+    const [actualEndDatetime , setActualEndDatetime] = useState<Date>(new Date());
+
+    const handleChangeDatetime = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        const inputtedDatetime = new Date(value);
+        if (name === "startDatetime") {
+            
+            if(inputtedDatetime >= endDatetime){
+                toast.error("Start datetime must be less than end datetime");
+                return;
+            }
+
+            setStartDatetime(new Date(value));
+        } else if (name === "endDatetime") {
+
+            if(inputtedDatetime <= startDatetime){
+                toast.error("End datetime must be greater than start datetime");
+                return;
+            }
+
+            setEndDatetime(new Date(value));
+        }
+    };
 
     const IsMeetingStarted = props.room.actualStartTime != null;
+
+    const handleConfirmMeeting = async () => {
+        const result = await confirmMeetingByHostMutation.mutateAsync({
+            startDatetime: actualStartDatetime,
+            endDatetime: actualEndDatetime,
+        });
+
+        if (result) {
+            toast.success("Meeting confirmed");
+            setTimeout(() => {
+                Router.reload();
+            }, 1300);
+        }
+    };
+
+    const handleSubmitMeetingTime = async () => {
+        const result = await submitMeetingTimeMutation.mutateAsync({
+            startDateTime: startDatetime,
+            endDateTime: endDatetime,
+            datetimeMode: datetimeMode,
+        });
+
+        if (result) {
+            toast.success("Meeting time submitted");
+            
+            const getRoomQuery = trpc.room.getRoomBySession.useQuery();
+
+            if (getRoomQuery.isError) {
+                toast.error(getRoomQuery.error.message);
+                return;
+            }
+
+            setDashboardProp({
+                room: getRoomQuery.data!.room,
+                attendee: getRoomQuery.data!.attendee,
+                attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
+            });
+        }
+    };
 
     return (
         <>
