@@ -24,6 +24,8 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
     const [actualStartDatetime , setActualStartDatetime] = useState<Date>(new Date());
     const [actualEndDatetime , setActualEndDatetime] = useState<Date>(new Date());
 
+    const IsMeetingStarted = props.room.actualStartTime != null;
+
     const handleChangeDatetime = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const inputtedDatetime = new Date(value);
@@ -45,8 +47,6 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
             setEndDatetime(new Date(value));
         }
     };
-
-    const IsMeetingStarted = props.room.actualStartTime != null;
 
     const handleConfirmMeeting = async () => {
         const result = await confirmMeetingByHostMutation.mutateAsync({

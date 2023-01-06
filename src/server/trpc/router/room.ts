@@ -218,13 +218,15 @@ export const roomRouter = router({
                 });
             }
 
-            const room = await ctx.prisma.meetingRoom.findUnique({
+            //check if the room is still open
+            const room = await ctx.prisma.meetingRoom.findFirst({
                 where: {
                     id: attendee.meetingRoomId,
+                    actualStartTime: null,
                 },
             });
 
-            if (!room || room.actualStartTime != null) {
+            if (!room) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                 });
