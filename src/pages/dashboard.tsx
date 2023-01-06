@@ -14,7 +14,7 @@ type DashboardProps = {
 
 const Dashboard: NextPage<DashboardProps> = (props) => {
     
-    const [datetimeRange, setDatetimeRange] = useState<MeetingRoomAttendeeDatetimeRange[]>(props.attendeeDatetimeRange);
+    const [dashboardProp, setDashboardProp] = useState<DashboardProps>(props);
 
     return (
         <>
