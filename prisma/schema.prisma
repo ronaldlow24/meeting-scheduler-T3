@@ -26,6 +26,7 @@ model MeetingRoomAttendee {
   id        String   @id @default(cuid())
   meetingRoomId String
   attendeeName String
+  attendeeEmail String
   isHost Boolean
   createdAt DateTime @default(now())
 }

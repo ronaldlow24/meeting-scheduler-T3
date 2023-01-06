@@ -5,7 +5,8 @@ import { isLoggedIn, login, logout } from "../../../utils/session";
 import { router, publicProcedure, protectedProcedure } from "../trpc";
 
 export const roomRouter = router({
-    getRoomBySession: protectedProcedure.query(async ({ ctx }) => {
+    getRoomBySession: protectedProcedure
+        .query(async ({ ctx }) => {
         const user = ctx.request.req.session.user!;
 
         const room = await ctx.prisma.meetingRoom.findUnique({
@@ -56,6 +57,7 @@ export const roomRouter = router({
             z.object({
                 title: z.string(),
                 hostName: z.string(),
+                hostEmail: z.string().email(),
                 startTime: z.date(),
                 endTime: z.date(),
                 numberOfAttendees: z.number(),
@@ -87,6 +89,7 @@ export const roomRouter = router({
                 data: {
                     meetingRoomId: creationResult.id,
                     attendeeName: input.hostName,
+                    attendeeEmail: input.hostEmail,
                     isHost: true,
                 },
             });
@@ -100,6 +103,7 @@ export const roomRouter = router({
             const user = {
                 meetingRoomId: creationResult.id,
                 attendeeName: host.attendeeName,
+                attendeeEmail: host.attendeeEmail,
             } as User;
 
             await login(ctx.request, user);
@@ -111,6 +115,7 @@ export const roomRouter = router({
             z.object({
                 secretKey: z.string(),
                 attendeeName: z.string(),
+                attendeeEmail: z.string().email(),
             })
         )
         .mutation(async ({ input, ctx }) => {
@@ -153,6 +158,7 @@ export const roomRouter = router({
                     data: {
                         meetingRoomId: room.id,
                         attendeeName: input.attendeeName,
+                        attendeeEmail: input.attendeeEmail,
                         isHost: false,
                     },
                 });
@@ -161,6 +167,8 @@ export const roomRouter = router({
             const user = {
                 meetingRoomId: room.id,
                 attendeeName: attendee.attendeeName,
+                attendeeEmail: attendee.attendeeEmail,
+                meetingRoomAttendeeId: attendee.id,
             } as User;
 
             await login(ctx.request, user);
@@ -170,18 +178,20 @@ export const roomRouter = router({
                 data: attendee,
             };
         }),
-    logout: protectedProcedure.mutation(async ({ ctx }) => {
-        await logout(ctx.request);
+    logout: protectedProcedure
+        .mutation(async ({ ctx }) => {
+            await logout(ctx.request);
 
-        return {
-            result: true,
-        };
-    }),
-    checkLogin: publicProcedure.query(async ({ ctx }) => {
-        const result = await isLoggedIn(ctx.request);
+            return {
+                result: true,
+            };
+        }),
+    checkLogin: publicProcedure
+        .query(async ({ ctx }) => {
+            const result = await isLoggedIn(ctx.request);
 
-        return {
-            result: result,
-        };
-    }),
+            return {
+                result: result,
+            };
+        }),
 });

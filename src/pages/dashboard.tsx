@@ -16,6 +16,8 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
     
     const [dashboardProp, setDashboardProp] = useState<DashboardProps>(props);
 
+    const IsMeetingStarted = props.room.actualStartTime != null;
+
     return (
         <>
             <main>
@@ -23,20 +25,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                     <h1 className="text-center">Meeting Scheduler</h1>
                     <div className="row">
                         <div className="col-12 text-center">
-                            <button
-                                type="button"
-                                className="btn btn-outline-success"
-                            >
-                                Create a room
-                            </button>
-                        </div>
-                        <div className="col-12 text-center">
-                            <button
-                                type="button"
-                                className="btn btn-outline-primary"
-                            >
-                                Join a room
-                            </button>
+
                         </div>
                     </div>
                 </div>

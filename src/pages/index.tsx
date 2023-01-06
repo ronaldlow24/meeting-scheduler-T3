@@ -6,6 +6,9 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect, useState } from "react";
 import Router from "next/router";
+import { z } from "zod";
+
+const emailSchema = z.string().email();
 
 const modalCustomStyles = {
     content: {
@@ -38,6 +41,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
 
     const [roomTitle, setRoomTitle] = useState<string>("");
     const [hostName, setHostName] = useState<string>("");
+    const [hostEmail, setHostEmail] = useState<string>("");
     const [startTime, setStartTime] = useState<Date>(new Date());
     const [endTime, setEndTime] = useState<Date>(new Date());
     const [numberOfAttendees, setNumberOfAttendees] = useState<number>(
@@ -75,6 +79,19 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
+        if (hostEmail.trim() === "") {
+            toast.error("Host email must not be empty");
+            return;
+        }
+
+        //validate email using Zod
+        const validationResult = await emailSchema.safeParseAsync(hostEmail);
+        if(!validationResult.success)
+        {
+            toast.error("Email is not valid");
+            return;
+        }
+
         if (startTime === null || startTime === undefined) {
             toast.error("Start time must not be empty");
             return;
@@ -102,6 +119,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
         const createRoomResult = await createRoomMutation.mutateAsync({
             title: roomTitle,
             hostName,
+            hostEmail,
             startTime,
             endTime,
             numberOfAttendees,
@@ -133,6 +151,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
     const clearAndCloseModal = () => {
         setRoomTitle("");
         setHostName("");
+        setHostEmail("");
         setStartTime(new Date());
         setEndTime(new Date());
         setNumberOfAttendees(DefaultNumberOfAttendees);
@@ -177,6 +196,21 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             disabled={createRoomMutation.isLoading}
                             value={hostName}
                             onChange={(e) => setHostName(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="row mt-3">
+                <div className="col">
+                    <div className="input-group">
+                        <input
+                            type="email"
+                            className="form-control"
+                            placeholder="Host Email"
+                            disabled={createRoomMutation.isLoading}
+                            value={hostEmail}
+                            onChange={(e) => setHostEmail(e.target.value)}
                         />
                     </div>
                 </div>
@@ -268,6 +302,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
 
     const [secretKey, setSecretKey] = useState<string>("");
     const [attendeeName, setAttendeeName] = useState<string>("");
+    const [attendeeEmail, setAttendeeEmail] = useState<string>("");
 
     const handleSubmit = async () => {
         //validate all input
@@ -281,9 +316,23 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
+        if (attendeeEmail.trim() === "") {
+            toast.error("Email must not be empty");
+            return;
+        }
+
+        //validate email using Zod
+        const validationResult = await emailSchema.safeParseAsync(attendeeEmail);
+        if(!validationResult.success)
+        {
+            toast.error("Email is not valid");
+            return;
+        }
+
         const joinRoomResult = await joinRoomMutation.mutateAsync({
             secretKey,
             attendeeName,
+            attendeeEmail,
         });
 
         if (joinRoomMutation.isError) {
@@ -306,6 +355,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
     const clearAndCloseModal = () => {
         setSecretKey("");
         setAttendeeName("");
+        setAttendeeEmail("");
         closeModal();
     };
 
@@ -347,6 +397,21 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             disabled={joinRoomMutation.isLoading}
                             value={attendeeName}
                             onChange={(e) => setAttendeeName(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="row mt-3">
+                <div className="col">
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Email"
+                            disabled={joinRoomMutation.isLoading}
+                            value={attendeeEmail}
+                            onChange={(e) => setAttendeeEmail(e.target.value)}
                         />
                     </div>
                 </div>
