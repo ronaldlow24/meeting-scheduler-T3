@@ -16,9 +16,16 @@ const transporter = nodemailer.createTransport({
 export const SendEmail = (to: string | string[], subject: string, text: string, html : boolean = false) => {
 
     //validate email
-    if (!ValidateEmail(to)) {
-        console.log("Invalid email");
-        return;
+    if (to instanceof Array) {
+        for (const email of to) {
+            if (!ValidateEmail(email)) {
+                throw new Error("Invalid email address");
+            }
+        }
+    } else {
+        if (!ValidateEmail(to)) {
+            throw new Error("Invalid email address");
+        }
     }
 
     const mailOptions : Mail.Options = {
@@ -38,7 +45,7 @@ export const SendEmail = (to: string | string[], subject: string, text: string, 
     });
 };
 
-export const ValidateEmail = (email: string | string[]) => {
+export const ValidateEmail = (email: string) => {
     const emailSchema = z.string().email();
     return emailSchema.safeParse(email).success;
 }
