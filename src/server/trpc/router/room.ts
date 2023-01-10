@@ -4,6 +4,7 @@ import { User } from "../../../types/User";
 import { isLoggedIn, login, logout } from "../../../utils/session";
 import { router, publicProcedure, protectedProcedure } from "../trpc";
 import { MeetingRoomAttendeeDatetimeRangeDatetimeMode } from "@prisma/client";
+import { SendEmail } from "../../../utils/mail";
 
 export const roomRouter = router({
     getRoomBySession: protectedProcedure
@@ -307,6 +308,25 @@ export const roomRouter = router({
                 throw new TRPCError({
                     code: "NOT_FOUND",
                 });
+            }
+
+            //send email to all attendees
+            const attendees = await ctx.prisma.meetingRoomAttendee.findMany({
+                where: {
+                    meetingRoomId: room.id,
+                },
+            });
+
+            //loop
+            for (const attendee of attendees) {
+                const subject = `${room.title} - Meeting Time Confirmed`;
+                const message = `
+                    <p>Hi ${attendee.attendeeName},</p>
+                    <p>The host has confirmed the meeting time.</p>
+                    <p>Meeting Title: ${room.title}</p>
+                    <p>Meeting Time: ${input.startDatetime.toLocaleString()} - ${input.endDatetime.toLocaleString()}</p>
+                `
+                SendEmail(attendee.attendeeEmail, subject, message);
             }
 
             return {
