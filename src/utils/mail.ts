@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import Mail from "nodemailer/lib/mailer";
+import z from "zod";
 
 const FromEmail = "ron556611@gmail.com";
 
@@ -29,3 +30,8 @@ export const SendEmail = (to: string | string[], subject: string, text: string, 
         }
     });
 };
+
+export const ValidateEmail = (email: string) => {
+    const emailSchema = z.string().email();
+    return emailSchema.safeParse(email).success;
+}

@@ -6,9 +6,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useEffect, useState } from "react";
 import Router from "next/router";
-import { z } from "zod";
-
-const emailSchema = z.string().email();
+import { ValidateEmail } from "../utils/mail";
 
 const modalCustomStyles = {
     content: {
@@ -84,9 +82,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
-        //validate email using Zod
-        const validationResult = await emailSchema.safeParseAsync(hostEmail);
-        if(!validationResult.success)
+        if(!ValidateEmail(hostEmail))
         {
             toast.error("Email is not valid");
             return;
@@ -321,9 +317,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
-        //validate email using Zod
-        const validationResult = await emailSchema.safeParseAsync(attendeeEmail);
-        if(!validationResult.success)
+        if(!ValidateEmail(attendeeEmail))
         {
             toast.error("Email is not valid");
             return;
