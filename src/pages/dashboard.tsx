@@ -1,10 +1,15 @@
-import { type NextPage, GetServerSideProps  } from "next";
+import { type NextPage, GetServerSideProps } from "next";
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Router from "next/router";
-import type { MeetingRoom, MeetingRoomAttendee, MeetingRoomAttendeeDatetimeRange, MeetingRoomAttendeeDatetimeRangeDatetimeMode } from "@prisma/client";
+import type {
+    MeetingRoom,
+    MeetingRoomAttendee,
+    MeetingRoomAttendeeDatetimeRange,
+    MeetingRoomAttendeeDatetimeRangeDatetimeMode,
+} from "@prisma/client";
 
 type DashboardProps = {
     room: MeetingRoom;
@@ -12,17 +17,59 @@ type DashboardProps = {
     attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
 };
 
-const Dashboard: NextPage<DashboardProps> = (props) => {
-    const confirmMeetingByHostMutation = trpc.room.confirmMeetingByHost.useMutation();
-    const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
+const HorizontalTimeLine : React.FC<{attendee: MeetingRoomAttendee, attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[]}> = ({attendee, attendeeDatetimeRange}) => {
     
-    const [dashboardProp, setDashboardProp] = useState<DashboardProps>(props);
-    const [startDatetime , setStartDatetime] = useState<Date>(new Date());
-    const [endDatetime , setEndDatetime] = useState<Date>(new Date());
-    const [datetimeMode , setDatetimeMode] = useState<MeetingRoomAttendeeDatetimeRangeDatetimeMode>("BUSY");
+    return (
+        <div className="row">
+            <div className="col-2">
+                <div className="row">
+                    <div className="col-12">
+                        <p className="text-center">{attendee.attendeeName}</p>
+                    </div>
+                </div>
+            </div>
+            <div className="col-10">
+                <div className="row">
+                    <div className="col-12">
+                        <div className="row">
+                            {attendeeDatetimeRange.map((attendeeDatetimeRange) => {
+                                return (
+                                    <div className="col-12">
+                                        <div className="row">
+                                            <div className="col-12">
+                                                <p>{attendeeDatetimeRange.startDatetime.toLocaleString()} - {attendeeDatetimeRange.endDatetime.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
-    const [actualStartDatetime , setActualStartDatetime] = useState<Date>(new Date());
-    const [actualEndDatetime , setActualEndDatetime] = useState<Date>(new Date());
+
+
+const Dashboard: NextPage<DashboardProps> = (props) => {
+    const confirmMeetingByHostMutation =
+        trpc.room.confirmMeetingByHost.useMutation();
+    const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
+
+    const [dashboardProp, setDashboardProp] = useState<DashboardProps>(props);
+    const [startDatetime, setStartDatetime] = useState<Date>(new Date());
+    const [endDatetime, setEndDatetime] = useState<Date>(new Date());
+    const [datetimeMode, setDatetimeMode] =
+        useState<MeetingRoomAttendeeDatetimeRangeDatetimeMode>("BUSY");
+
+    const [actualStartDatetime, setActualStartDatetime] = useState<Date>(
+        new Date()
+    );
+    const [actualEndDatetime, setActualEndDatetime] = useState<Date>(
+        new Date()
+    );
 
     const IsMeetingStarted = props.room.actualStartTime != null;
 
@@ -30,16 +77,14 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
         const { name, value } = e.target;
         const inputtedDatetime = new Date(value);
         if (name === "startDatetime") {
-            
-            if(inputtedDatetime >= endDatetime){
+            if (inputtedDatetime >= endDatetime) {
                 toast.error("Start datetime must be less than end datetime");
                 return;
             }
 
             setStartDatetime(new Date(value));
         } else if (name === "endDatetime") {
-
-            if(inputtedDatetime <= startDatetime){
+            if (inputtedDatetime <= startDatetime) {
                 toast.error("End datetime must be greater than start datetime");
                 return;
             }
@@ -71,7 +116,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
 
         if (result) {
             toast.success("Meeting time submitted");
-            
+
             const getRoomQuery = trpc.room.getRoomBySession.useQuery();
 
             if (getRoomQuery.isError) {
@@ -92,11 +137,23 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
-                    <div className="row">
-                        <div className="col-12 text-center">
+                    {IsMeetingStarted && (
+                        <>
+                            <div className="row">
+                                <div className="col-12 text-center">
+                                    <h2>Meeting Already Confirmed!</h2>
+                                    <p>
+                                        Meeting started at {props.room.actualStartTime?.toLocaleString()}
+                                    </p>
+                                    <p>
+                                        Meeting ended at {props.room.actualEndTime?.toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
-                        </div>
-                    </div>
+
                 </div>
             </main>
         </>
@@ -104,7 +161,6 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
 };
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-
     const getRoomQuery = trpc.room.getRoomBySession.useQuery();
 
     if (getRoomQuery.isError) {
@@ -114,7 +170,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         };
     }
 
-    const result : DashboardProps = {
+    const result: DashboardProps = {
         room: getRoomQuery.data!.room,
         attendee: getRoomQuery.data!.attendee,
         attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
@@ -123,7 +179,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
         props: result,
     };
-}
+};
 
 export default Dashboard;
-
