@@ -15,48 +15,77 @@ type DashboardProps = {
     room: MeetingRoom;
     attendee: MeetingRoomAttendee[];
     attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
+    currentUserId: string;
 };
 
-const HorizontalTimeLine : React.FC<{attendee: MeetingRoomAttendee, attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[]}> = ({attendee, attendeeDatetimeRange}) => {
-    
+const FreeColor = "#00FF00";
+const BusyColor = "#FF0000";
+
+const HorizontalTimeLine: React.FC<{
+    attendee: MeetingRoomAttendee;
+    attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
+}> = ({ attendee, attendeeDatetimeRange }) => {
     return (
         <div className="row">
             <div className="col-2">
-                <div className="row">
-                    <div className="col-12">
-                        <p className="text-center">{attendee.attendeeName}</p>
-                    </div>
-                </div>
+                <p className="text-center">{attendee.attendeeName}</p>
             </div>
             <div className="col-10">
                 <div className="row">
-                    <div className="col-12">
-                        <div className="row">
-                            {attendeeDatetimeRange.map((attendeeDatetimeRange) => {
-                                return (
-                                    <div className="col-12">
-                                        <div className="row">
-                                            <div className="col-12">
-                                                <p>{attendeeDatetimeRange.startDatetime.toLocaleString()} - {attendeeDatetimeRange.endDatetime.toLocaleString()}</p>
-                                            </div>
-                                        </div>
+                    {attendeeDatetimeRange
+                        .sort(function (a, b) {
+                            return (
+                                b.startDateTime.getTime() -
+                                a.startDateTime.getTime()
+                            );
+                        })
+                        .map((attendeeDatetimeRange) => {
+                            return (
+                                <div className="col-2">
+                                    <div
+                                        style={{
+                                            width: "100%",
+                                            height: "50%",
+                                            borderBottom: `1px solid ${
+                                                attendeeDatetimeRange.datetimeMode ==
+                                                    "BUSY" && BusyColor
+                                            } ${
+                                                attendeeDatetimeRange.datetimeMode ==
+                                                    "FREE" && FreeColor
+                                            }`,
+                                        }}
+                                    >
+                                        {attendeeDatetimeRange.startDateTime.toLocaleTimeString()}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                                    <div
+                                        style={{
+                                            width: "100%",
+                                            height: "50%",
+                                            borderTop: `1px solid ${
+                                                attendeeDatetimeRange.datetimeMode ==
+                                                    "BUSY" && BusyColor
+                                            } ${
+                                                attendeeDatetimeRange.datetimeMode ==
+                                                    "FREE" && FreeColor
+                                            }`,
+                                        }}
+                                    >
+                                        {attendeeDatetimeRange.endDateTime.toLocaleTimeString()}
+                                    </div>
+                                </div>
+                            );
+                        })}
                 </div>
             </div>
         </div>
     );
-}
-
-
+};
 
 const Dashboard: NextPage<DashboardProps> = (props) => {
     const confirmMeetingByHostMutation =
         trpc.room.confirmMeetingByHost.useMutation();
     const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
+    const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
 
     const [dashboardProp, setDashboardProp] = useState<DashboardProps>(props);
     const [startDatetime, setStartDatetime] = useState<Date>(new Date());
@@ -72,6 +101,8 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
     );
 
     const IsMeetingStarted = props.room.actualStartTime != null;
+    const IsHost =
+        props.attendee.find((s) => s.id == props.currentUserId)?.isHost == true;
 
     const handleChangeDatetime = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -107,6 +138,17 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
         }
     };
 
+    const handleCancelMeeting = async () => {
+        const result = await cancelMeetingByHostMutation.mutateAsync();
+
+        if (result) {
+            toast.success("Meeting cancelled");
+            setTimeout(() => {
+                Router.push("/");
+            }, 1300);
+        }
+    };
+
     const handleSubmitMeetingTime = async () => {
         const result = await submitMeetingTimeMutation.mutateAsync({
             startDateTime: startDatetime,
@@ -128,6 +170,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 room: getRoomQuery.data!.room,
                 attendee: getRoomQuery.data!.attendee,
                 attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
+                currentUserId: props.currentUserId,
             });
         }
     };
@@ -143,17 +186,135 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                                 <div className="col-12 text-center">
                                     <h2>Meeting Already Confirmed!</h2>
                                     <p>
-                                        Meeting started at {props.room.actualStartTime?.toLocaleString()}
+                                        Meeting started at{" "}
+                                        {props.room.actualStartTime?.toLocaleString()}
                                     </p>
                                     <p>
-                                        Meeting ended at {props.room.actualEndTime?.toLocaleString()}
+                                        Meeting ended at{" "}
+                                        {props.room.actualEndTime?.toLocaleString()}
                                     </p>
                                 </div>
                             </div>
                         </>
                     )}
 
+                    {!IsMeetingStarted && IsHost && (
+                        <div className="row">
+                            <div className="col-12 text-center">
+                                <h2>Confirm Meeting</h2>
+                                <div className="row">
+                                    <div className="col-6">
+                                        <div className="form-group">
+                                            <label>Start Datetime</label>
+                                            <input
+                                                type="datetime-local"
+                                                className="form-control"
+                                                onChange={(e) => {
+                                                    setActualStartDatetime(
+                                                        new Date(e.target.value)
+                                                    );
+                                                }}
+                                            />
 
+                                            <label>End Datetime</label>
+                                            <input
+                                                type="datetime-local"
+                                                className="form-control"
+                                                onChange={(e) => {
+                                                    setActualEndDatetime(
+                                                        new Date(e.target.value)
+                                                    );
+                                                }}
+                                            />
+
+                                            <button
+                                                className="btn btn-primary mt-3"
+                                                onClick={handleConfirmMeeting}
+                                            >
+                                                Confirm Meeting
+                                            </button>
+
+                                            <button
+                                                className="btn btn-danger mt-3 ml-3"
+                                                onClick={handleCancelMeeting}
+                                            >
+                                                Cancel Meeting
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {!IsMeetingStarted && !IsHost && (
+                        <>
+                            <div className="row">
+                                <div className="col-12 text-center">
+                                    <h2>Submit Meeting Time</h2>
+                                    <div className="row">
+                                        <div className="col-6">
+                                            <div className="form-group">
+                                                <label>Start Datetime</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    className="form-control"
+                                                    name="startDatetime"
+                                                    onChange={handleChangeDatetime}
+                                                />
+
+                                                <label>End Datetime</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    className="form-control"
+                                                    name="endDatetime"
+                                                    onChange={handleChangeDatetime}
+                                                />
+
+                                                <label>Datetime Mode</label>
+                                                <select
+                                                    className="form-control"
+                                                    name="datetimeMode"
+                                                    onChange={(e) =>
+                                                        setDatetimeMode(
+                                                            e.target.value
+                                                        )}
+                                                >
+                                                    <option value="FREE">
+                                                        Available
+                                                    </option>
+                                                    <option value="BUSY">
+                                                        Not Available
+                                                    </option>
+                                                </select>
+
+                                                <button
+                                                    className="btn btn-primary mt-3"
+                                                    onClick={handleSubmitMeetingTime}
+                                                >
+                                                    Submit Meeting Time
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {dashboardProp.attendee.map((attendee) => {
+                        const attendeeDatetimeRange =
+                            dashboardProp.attendeeDatetimeRange.filter(
+                                (x) => x.meetingRoomAttendeeId === attendee.id
+                            );
+
+                        return (
+                            <HorizontalTimeLine
+                                attendee={attendee}
+                                attendeeDatetimeRange={attendeeDatetimeRange}
+                            />
+                        );
+                    })}
                 </div>
             </main>
         </>
@@ -174,6 +335,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         room: getRoomQuery.data!.room,
         attendee: getRoomQuery.data!.attendee,
         attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
+        currentUserId: context.req.session.user?.meetingRoomAttendeeId!,
     };
 
     return {

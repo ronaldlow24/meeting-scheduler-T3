@@ -180,6 +180,55 @@ export const roomRouter = router({
                 data: attendee,
             };
         }),
+    deleteRoom: protectedProcedure
+        .mutation(async ({ ctx }) => {
+            const user = ctx.request.req.session.user!;
+            const room = await ctx.prisma.meetingRoom.findUnique({
+                where: {
+                    id: user.meetingRoomId,
+                },
+            });
+
+            if (!room) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                });
+            }
+
+            const attendee = await ctx.prisma.meetingRoomAttendee.findMany({
+                where: {
+                    meetingRoomId: room.id,
+                },
+            });
+
+            const attendeeIds = attendee.map((item) => item.id);
+
+            await ctx.prisma.meetingRoomAttendeeDatetimeRange.deleteMany({
+                where: {
+                    meetingRoomAttendeeId: {
+                        in: attendeeIds,
+                    },
+                },
+            });
+
+            await ctx.prisma.meetingRoomAttendee.deleteMany({
+                where: {
+                    meetingRoomId: room.id,
+                },
+            });
+
+            await ctx.prisma.meetingRoom.delete({
+                where: {
+                    id: room.id,
+                },
+            });
+
+            await logout(ctx.request);
+
+            return {
+                result: true,
+            };
+        }),
     logout: protectedProcedure
         .mutation(async ({ ctx }) => {
             await logout(ctx.request);
