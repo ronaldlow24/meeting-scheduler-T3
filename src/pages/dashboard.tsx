@@ -260,7 +260,9 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                                                     type="datetime-local"
                                                     className="form-control"
                                                     name="startDatetime"
-                                                    onChange={handleChangeDatetime}
+                                                    onChange={
+                                                        handleChangeDatetime
+                                                    }
                                                 />
 
                                                 <label>End Datetime</label>
@@ -268,17 +270,34 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                                                     type="datetime-local"
                                                     className="form-control"
                                                     name="endDatetime"
-                                                    onChange={handleChangeDatetime}
+                                                    onChange={
+                                                        handleChangeDatetime
+                                                    }
                                                 />
 
                                                 <label>Datetime Mode</label>
                                                 <select
                                                     className="form-control"
                                                     name="datetimeMode"
-                                                    onChange={(e) =>
-                                                        setDatetimeMode(
-                                                            e.target.value
-                                                        )}
+                                                    onChange={(e) => {
+                                                        if (
+                                                            e.target.value ===
+                                                            "FREE"
+                                                        ) {
+                                                            setDatetimeMode(
+                                                                e.target.value
+                                                            );
+                                                        }
+
+                                                        if (
+                                                            e.target.value ===
+                                                            "BUSY"
+                                                        ) {
+                                                            setDatetimeMode(
+                                                                e.target.value
+                                                            );
+                                                        }
+                                                    }}
                                                 >
                                                     <option value="FREE">
                                                         Available
@@ -290,7 +309,9 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
 
                                                 <button
                                                     className="btn btn-primary mt-3"
-                                                    onClick={handleSubmitMeetingTime}
+                                                    onClick={
+                                                        handleSubmitMeetingTime
+                                                    }
                                                 >
                                                     Submit Meeting Time
                                                 </button>
