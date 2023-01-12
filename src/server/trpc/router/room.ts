@@ -63,6 +63,7 @@ export const roomRouter = router({
                 startTime: z.date(),
                 endTime: z.date(),
                 numberOfAttendees: z.number(),
+                timeZone: z.string(),
             })
         )
         .mutation(async ({ input, ctx }) => {
@@ -77,6 +78,7 @@ export const roomRouter = router({
                     availableStartDateTime: input.startTime,
                     availableEndDateTime: input.endTime,
                     numberOfAttendees: input.numberOfAttendees,
+                    timeZone: input.timeZone,
                 },
             });
 
@@ -307,6 +309,13 @@ export const roomRouter = router({
                 });
             }
 
+            if(input.startDateTime < room.availableStartDateTime || input.endDateTime > room.availableEndDateTime) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "You have time slots outside of the available time slots",
+                });
+            }
+
             const s = await ctx.prisma.meetingRoomAttendeeDatetimeRange.create(
                 {
                     data: {
@@ -342,14 +351,10 @@ export const roomRouter = router({
                 });
             }
 
-            //update the room
-            const room = await ctx.prisma.meetingRoom.update({
+            const room = await ctx.prisma.meetingRoom.findFirst({
                 where: {
                     id: user!.meetingRoomId,
-                },
-                data: {
-                    actualStartTime: input.startDatetime,
-                    actualEndTime: input.endDatetime,
+                    actualStartTime: null,
                 },
             });
 
@@ -359,10 +364,34 @@ export const roomRouter = router({
                 });
             }
 
+            if(input.startDatetime < room.availableStartDateTime || input.endDatetime > room.availableEndDateTime) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "You cannot set the meeting time outside of the available time slots",
+                });
+            }
+
+            //update the room
+            const roomUpdate = await ctx.prisma.meetingRoom.update({
+                where: {
+                    id: user!.meetingRoomId,
+                },
+                data: {
+                    actualStartTime: input.startDatetime,
+                    actualEndTime: input.endDatetime,
+                },
+            });
+
+            if (!roomUpdate) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                });
+            }
+
             //send email to all attendees
             const attendees = await ctx.prisma.meetingRoomAttendee.findMany({
                 where: {
-                    meetingRoomId: room.id,
+                    meetingRoomId: roomUpdate.id,
                 },
             });
 

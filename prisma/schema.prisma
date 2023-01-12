@@ -20,6 +20,7 @@ model MeetingRoom {
   actualStartTime DateTime?
   actualEndTime DateTime? 
   createdAt DateTime @default(now())
+  timeZone String
 }
 
 model MeetingRoomAttendee {

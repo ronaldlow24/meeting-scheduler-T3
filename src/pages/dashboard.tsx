@@ -22,9 +22,10 @@ const FreeColor = "#00FF00";
 const BusyColor = "#FF0000";
 
 const HorizontalTimeLine: React.FC<{
+    room: MeetingRoom;
     attendee: MeetingRoomAttendee;
     attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
-}> = ({ attendee, attendeeDatetimeRange }) => {
+}> = ({ room, attendee, attendeeDatetimeRange }) => {
     return (
         <div className="row">
             <div className="col-2">
@@ -55,7 +56,7 @@ const HorizontalTimeLine: React.FC<{
                                             }`,
                                         }}
                                     >
-                                        {attendeeDatetimeRange.startDateTime.toLocaleTimeString()}
+                                        {attendeeDatetimeRange.startDateTime.toString()} ({room.timeZone})
                                     </div>
                                     <div
                                         style={{
@@ -70,7 +71,7 @@ const HorizontalTimeLine: React.FC<{
                                             }`,
                                         }}
                                     >
-                                        {attendeeDatetimeRange.endDateTime.toLocaleTimeString()}
+                                        {attendeeDatetimeRange.endDateTime.toString()} ({room.timeZone})
                                     </div>
                                 </div>
                             );
@@ -100,9 +101,9 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
         new Date()
     );
 
-    const IsMeetingStarted = props.room.actualStartTime != null;
+    const IsMeetingStarted = dashboardProp.room.actualStartTime != null;
     const IsHost =
-        props.attendee.find((s) => s.id == props.currentUserId)?.isHost == true;
+        dashboardProp.attendee.find((s) => s.id == dashboardProp.currentUserId)?.isHost == true;
 
     const handleChangeDatetime = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -113,10 +114,20 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 return;
             }
 
+            if(inputtedDatetime < dashboardProp.room.availableStartDateTime){
+                toast.error("Start datetime must be greater than available start datetime");
+                return;
+            }
+
             setStartDatetime(new Date(value));
         } else if (name === "endDatetime") {
             if (inputtedDatetime <= startDatetime) {
                 toast.error("End datetime must be greater than start datetime");
+                return;
+            }
+
+            if(inputtedDatetime > dashboardProp.room.availableEndDateTime){
+                toast.error("End datetime must be less than available end datetime");
                 return;
             }
 
@@ -125,6 +136,22 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
     };
 
     const handleConfirmMeeting = async () => {
+
+        if(actualStartDatetime >= actualEndDatetime){
+            toast.error("Start datetime must be less than end datetime");
+            return;
+        }
+
+        if(actualStartDatetime < dashboardProp.room.availableStartDateTime){
+            toast.error("Start datetime must be greater than available start datetime");
+            return;
+        }
+
+        if(actualEndDatetime > dashboardProp.room.availableEndDateTime){
+            toast.error("End datetime must be less than available end datetime");
+            return;
+        }
+
         const result = await confirmMeetingByHostMutation.mutateAsync({
             startDatetime: actualStartDatetime,
             endDatetime: actualEndDatetime,
@@ -170,7 +197,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 room: getRoomQuery.data!.room,
                 attendee: getRoomQuery.data!.attendee,
                 attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
-                currentUserId: props.currentUserId,
+                currentUserId: dashboardProp.currentUserId,
             });
         }
     };
@@ -180,18 +207,20 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
+                    <h3 className="text-center">Title : {dashboardProp.room.title}</h3>
+                    <h3 className="text-center">Available Start Time : {dashboardProp.room.availableStartDateTime.toString()} ({dashboardProp.room.timeZone})</h3>
+                    <h3 className="text-center">Available End Time : {dashboardProp.room.availableEndDateTime.toString()} ({dashboardProp.room.timeZone})</h3>
+
                     {IsMeetingStarted && (
                         <>
                             <div className="row">
                                 <div className="col-12 text-center">
                                     <h2>Meeting Already Confirmed!</h2>
                                     <p>
-                                        Meeting started at{" "}
-                                        {props.room.actualStartTime?.toLocaleString()}
+                                        Meeting started at {dashboardProp.room.actualStartTime!.toString()} ({dashboardProp.room.timeZone})
                                     </p>
                                     <p>
-                                        Meeting ended at{" "}
-                                        {props.room.actualEndTime?.toLocaleString()}
+                                        Meeting ended at {dashboardProp.room.actualEndTime!.toString()} ({dashboardProp.room.timeZone})
                                     </p>
                                 </div>
                             </div>
@@ -331,6 +360,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
 
                         return (
                             <HorizontalTimeLine
+                                room={dashboardProp.room}
                                 attendee={attendee}
                                 attendeeDatetimeRange={attendeeDatetimeRange}
                             />

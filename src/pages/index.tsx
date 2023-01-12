@@ -46,8 +46,6 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
         DefaultNumberOfAttendees
     );
 
-    const [secretKey, setSecretKey] = useState<string>("");
-
     const handleChangeNumberOfAttendees = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -112,6 +110,8 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
+        const { timeZone } = Intl.DateTimeFormat().resolvedOptions();
+
         const createRoomResult = await createRoomMutation.mutateAsync({
             title: roomTitle,
             hostName,
@@ -119,6 +119,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             startTime,
             endTime,
             numberOfAttendees,
+            timeZone
         });
 
         if (createRoomMutation.isError || !createRoomResult) {
