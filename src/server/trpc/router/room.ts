@@ -5,6 +5,7 @@ import { isLoggedIn, login, logout } from "../../../utils/session";
 import { router, publicProcedure, protectedProcedure } from "../trpc";
 import { MeetingRoomAttendeeDatetimeRangeDatetimeMode } from "@prisma/client";
 import { SendEmail } from "../../../utils/mail";
+import moment from "moment-timezone";
 
 export const roomRouter = router({
     getRoomBySession: protectedProcedure
@@ -68,6 +69,10 @@ export const roomRouter = router({
         )
         .mutation(async ({ input, ctx }) => {
             //create and return the room
+
+            const startTimeUTC = moment.tz(input.startTime, input.timeZone).utc().toDate();
+            const endTimeUTC = moment.tz(input.endTime, input.timeZone).utc().toDate();
+
             const creationResult = await ctx.prisma.meetingRoom.create({
                 data: {
                     title: input.title,
@@ -75,8 +80,8 @@ export const roomRouter = router({
                         Math.random().toString(36).substring(2, 15) +
                         Math.random().toString(36).substring(2, 15)
                     ).toString(),
-                    availableStartDateTime: input.startTime,
-                    availableEndDateTime: input.endTime,
+                    availableStartDateTimeUTC: startTimeUTC,
+                    availableEndDateTimeUTC: endTimeUTC,
                     numberOfAttendees: input.numberOfAttendees,
                     timeZone: input.timeZone,
                 },
@@ -256,6 +261,10 @@ export const roomRouter = router({
             })
         )
         .mutation(async ({ input, ctx }) => {
+
+            const startDateTimeUTC = moment(input.startDateTime).utc().toDate();
+            const endDateTimeUTC = moment(input.endDateTime).utc().toDate();
+
             const user = ctx.request.req.session.user;
 
             const attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
@@ -274,7 +283,7 @@ export const roomRouter = router({
             const room = await ctx.prisma.meetingRoom.findFirst({
                 where: {
                     id: attendee.meetingRoomId,
-                    actualStartTime: null,
+                    actualStartTimeUTC: null,
                 },
             });
 
@@ -289,13 +298,13 @@ export const roomRouter = router({
                     meetingRoomAttendeeId: attendee.id,
                     OR: [
                         {
-                            startDateTime: {
-                                gte: input.startDateTime,
-                                lte: input.endDateTime,
+                            startDateTimeUTC: {
+                                gte: startDateTimeUTC,
+                                lte: endDateTimeUTC,
                             },
-                            endDateTime: {
-                                gte: input.startDateTime,
-                                lte: input.endDateTime,
+                            endDateTimeUTC: {
+                                gte: startDateTimeUTC,
+                                lte: endDateTimeUTC,
                             },
                         }
                     ]
@@ -309,7 +318,7 @@ export const roomRouter = router({
                 });
             }
 
-            if(input.startDateTime < room.availableStartDateTime || input.endDateTime > room.availableEndDateTime) {
+            if(startDateTimeUTC < room.availableStartDateTimeUTC || endDateTimeUTC > room.availableEndDateTimeUTC) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "You have time slots outside of the available time slots",
@@ -320,8 +329,8 @@ export const roomRouter = router({
                 {
                     data: {
                         meetingRoomAttendeeId: attendee.id,
-                        startDateTime: input.startDateTime,
-                        endDateTime: input.endDateTime,
+                        startDateTimeUTC: startDateTimeUTC,
+                        endDateTimeUTC: endDateTimeUTC,
                         datetimeMode : input.datetimeMode,
                     },
                 }
@@ -337,6 +346,10 @@ export const roomRouter = router({
             })
         )
         .mutation(async ({ input, ctx }) => {
+
+            const startDateTimeUTC = moment(input.startDatetime).utc().toDate();
+            const endDateTimeUTC = moment(input.endDatetime).utc().toDate();
+
             const user = ctx.request.req.session.user;
             
             const attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
@@ -354,7 +367,7 @@ export const roomRouter = router({
             const room = await ctx.prisma.meetingRoom.findFirst({
                 where: {
                     id: user!.meetingRoomId,
-                    actualStartTime: null,
+                    actualStartTimeUTC: null,
                 },
             });
 
@@ -364,7 +377,7 @@ export const roomRouter = router({
                 });
             }
 
-            if(input.startDatetime < room.availableStartDateTime || input.endDatetime > room.availableEndDateTime) {
+            if(startDateTimeUTC < room.availableStartDateTimeUTC || endDateTimeUTC > room.availableEndDateTimeUTC) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "You cannot set the meeting time outside of the available time slots",
@@ -377,8 +390,8 @@ export const roomRouter = router({
                     id: user!.meetingRoomId,
                 },
                 data: {
-                    actualStartTime: input.startDatetime,
-                    actualEndTime: input.endDatetime,
+                    actualStartTimeUTC: startDateTimeUTC,
+                    actualEndTimeUTC: endDateTimeUTC,
                 },
             });
 

@@ -15,11 +15,11 @@ model MeetingRoom {
   title     String   @db.Text
   secretKey String   @db.Text @unique
   numberOfAttendees Int
-  availableStartDateTime DateTime
-  availableEndDateTime DateTime
-  actualStartTime DateTime?
-  actualEndTime DateTime? 
-  createdAt DateTime @default(now())
+  availableStartDateTimeUTC DateTime
+  availableEndDateTimeUTC DateTime
+  actualStartTimeUTC DateTime?
+  actualEndTimeUTC DateTime? 
+  createdAtUTC DateTime @default(now())
   timeZone String
 }
 
@@ -29,7 +29,7 @@ model MeetingRoomAttendee {
   attendeeName String
   attendeeEmail String
   isHost Boolean
-  createdAt DateTime @default(now())
+  createdAtUTC DateTime @default(now())
 }
 
 enum MeetingRoomAttendeeDatetimeRangeDatetimeMode {
@@ -41,7 +41,7 @@ model MeetingRoomAttendeeDatetimeRange {
   id        String   @id @default(cuid())
   meetingRoomAttendeeId String
   datetimeMode MeetingRoomAttendeeDatetimeRangeDatetimeMode
-  startDateTime DateTime
-  endDateTime DateTime
-  createdAt DateTime @default(now())
+  startDateTimeUTC DateTime
+  endDateTimeUTC DateTime
+  createdAtUTC DateTime @default(now())
 }

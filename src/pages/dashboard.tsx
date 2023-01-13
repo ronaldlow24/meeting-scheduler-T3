@@ -36,8 +36,8 @@ const HorizontalTimeLine: React.FC<{
                     {attendeeDatetimeRange
                         .sort(function (a, b) {
                             return (
-                                b.startDateTime.getTime() -
-                                a.startDateTime.getTime()
+                                b.startDateTimeUTC.getTime() -
+                                a.startDateTimeUTC.getTime()
                             );
                         })
                         .map((attendeeDatetimeRange) => {
@@ -56,7 +56,7 @@ const HorizontalTimeLine: React.FC<{
                                             }`,
                                         }}
                                     >
-                                        {attendeeDatetimeRange.startDateTime.toString()} ({room.timeZone})
+                                        {attendeeDatetimeRange.startDateTimeUTC.toString()} ({room.timeZone})
                                     </div>
                                     <div
                                         style={{
@@ -71,7 +71,7 @@ const HorizontalTimeLine: React.FC<{
                                             }`,
                                         }}
                                     >
-                                        {attendeeDatetimeRange.endDateTime.toString()} ({room.timeZone})
+                                        {attendeeDatetimeRange.endDateTimeUTC.toString()} ({room.timeZone})
                                     </div>
                                 </div>
                             );
@@ -101,7 +101,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
         new Date()
     );
 
-    const IsMeetingStarted = dashboardProp.room.actualStartTime != null;
+    const IsMeetingStarted = dashboardProp.room.actualStartTimeUTC != null;
     const IsHost =
         dashboardProp.attendee.find((s) => s.id == dashboardProp.currentUserId)?.isHost == true;
 
@@ -114,7 +114,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 return;
             }
 
-            if(inputtedDatetime < dashboardProp.room.availableStartDateTime){
+            if(inputtedDatetime < dashboardProp.room.availableStartDateTimeUTC){
                 toast.error("Start datetime must be greater than available start datetime");
                 return;
             }
@@ -126,7 +126,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 return;
             }
 
-            if(inputtedDatetime > dashboardProp.room.availableEndDateTime){
+            if(inputtedDatetime > dashboardProp.room.availableEndDateTimeUTC){
                 toast.error("End datetime must be less than available end datetime");
                 return;
             }
@@ -142,12 +142,12 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
             return;
         }
 
-        if(actualStartDatetime < dashboardProp.room.availableStartDateTime){
+        if(actualStartDatetime < dashboardProp.room.availableStartDateTimeUTC){
             toast.error("Start datetime must be greater than available start datetime");
             return;
         }
 
-        if(actualEndDatetime > dashboardProp.room.availableEndDateTime){
+        if(actualEndDatetime > dashboardProp.room.availableEndDateTimeUTC){
             toast.error("End datetime must be less than available end datetime");
             return;
         }
@@ -208,8 +208,8 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
                     <h3 className="text-center">Title : {dashboardProp.room.title}</h3>
-                    <h3 className="text-center">Available Start Time : {dashboardProp.room.availableStartDateTime.toString()} ({dashboardProp.room.timeZone})</h3>
-                    <h3 className="text-center">Available End Time : {dashboardProp.room.availableEndDateTime.toString()} ({dashboardProp.room.timeZone})</h3>
+                    <h3 className="text-center">Available Start Time : {dashboardProp.room.availableStartDateTimeUTC.toString()} ({dashboardProp.room.timeZone})</h3>
+                    <h3 className="text-center">Available End Time : {dashboardProp.room.availableEndDateTimeUTC.toString()} ({dashboardProp.room.timeZone})</h3>
 
                     {IsMeetingStarted && (
                         <>
@@ -217,10 +217,10 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                                 <div className="col-12 text-center">
                                     <h2>Meeting Already Confirmed!</h2>
                                     <p>
-                                        Meeting started at {dashboardProp.room.actualStartTime!.toString()} ({dashboardProp.room.timeZone})
+                                        Meeting started at {dashboardProp.room.actualStartTimeUTC!.toString()} ({dashboardProp.room.timeZone})
                                     </p>
                                     <p>
-                                        Meeting ended at {dashboardProp.room.actualEndTime!.toString()} ({dashboardProp.room.timeZone})
+                                        Meeting ended at {dashboardProp.room.actualEndTimeUTC!.toString()} ({dashboardProp.room.timeZone})
                                     </p>
                                 </div>
                             </div>
