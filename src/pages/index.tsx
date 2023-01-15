@@ -1,12 +1,13 @@
-import { GetServerSideProps, type NextPage } from "next";
 import Modal from "react-modal";
 
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Router from "next/router";
-import { ValidateEmail } from "../utils/mail";
+import { ValidateEmail } from "../utils/common";
+import { withSessionSsr } from "../utils/session";
+import { NextPage } from "next";
 
 const modalCustomStyles = {
     content: {
@@ -80,8 +81,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
-        if(!ValidateEmail(hostEmail))
-        {
+        if (!ValidateEmail(hostEmail)) {
             toast.error("Email is not valid");
             return;
         }
@@ -119,7 +119,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             startTime,
             endTime,
             numberOfAttendees,
-            timeZone
+            timeZone,
         });
 
         if (createRoomMutation.isError || !createRoomResult) {
@@ -318,8 +318,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
-        if(!ValidateEmail(attendeeEmail))
-        {
+        if (!ValidateEmail(attendeeEmail)) {
             toast.error("Email is not valid");
             return;
         }
@@ -494,14 +493,16 @@ const Home: NextPage = (data) => {
     );
 };
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-    if (context.req.session.user) {
-        Router.push("/dashboard");
-    }
+export const getServerSideProps = withSessionSsr(
+    async function getServerSideProps(context) {
+        if (context.req.session.user) {
+            Router.push("/dashboard");
+        }
 
-    return {
-        props: {},
-    };
-};
+        return {
+            props: {},
+        };
+    }
+);
 
 export default Home;
