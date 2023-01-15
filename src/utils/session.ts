@@ -7,7 +7,7 @@ const sessionOptions: IronSessionOptions = {
   password: process.env.SECRET_COOKIE_PASSWORD as string,
   cookieName: "nextjs-iron-session",
   cookieOptions: {
-    secure: process.env.NODE_ENV.toUpperCase() === "PRODUCTION",
+    secure: process.env.NODE_ENV === "production",
   },
 };
 
