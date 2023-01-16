@@ -278,7 +278,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                 <div className="col">
                     <button
                         type="button"
-                        className="btn btn-primary w-100"
+                        className="btn btn-danger w-100"
                         disabled={createRoomMutation.isLoading}
                         hidden={createRoomMutation.isSuccess}
                         onClick={clearAndCloseModal}
@@ -428,7 +428,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                 <div className="col">
                     <button
                         type="button"
-                        className="btn btn-primary w-100"
+                        className="btn btn-danger w-100"
                         disabled={joinRoomMutation.isLoading}
                         onClick={clearAndCloseModal}
                     >
