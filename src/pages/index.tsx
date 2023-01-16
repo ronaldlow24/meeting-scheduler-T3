@@ -1,11 +1,9 @@
 import Modal from "react-modal";
-
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { useState } from "react";
 import Router from "next/router";
-import { ValidateEmail } from "../utils/common";
+import { ToISOStringLocal, ValidateEmail } from "../utils/common";
 import { withSessionSsr } from "../utils/session";
 import { NextPage } from "next";
 
@@ -20,7 +18,7 @@ const modalCustomStyles = {
     },
 };
 
-const DefaultNumberOfAttendees = 2;
+const MinimumNumberOfAttendees = 2;
 
 type BasedModalComponentType = {
     isOpen: boolean;
@@ -43,19 +41,17 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
     const [hostEmail, setHostEmail] = useState<string>("");
     const [startTime, setStartTime] = useState<Date>(new Date());
     const [endTime, setEndTime] = useState<Date>(new Date());
-    const [numberOfAttendees, setNumberOfAttendees] = useState<number>(
-        DefaultNumberOfAttendees
-    );
+    const [numberOfAttendees, setNumberOfAttendees] = useState<number>();
 
     const handleChangeNumberOfAttendees = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
         const inputValue = parseInt(e.target.value);
 
-        if (inputValue < DefaultNumberOfAttendees) {
+        if (inputValue < MinimumNumberOfAttendees) {
             toast.error(
                 `Number of attendees must be greater than ${
-                    DefaultNumberOfAttendees - 1
+                    MinimumNumberOfAttendees - 1
                 }`
             );
             return;
@@ -101,10 +97,15 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
-        if (numberOfAttendees < DefaultNumberOfAttendees) {
+        if (numberOfAttendees === null || numberOfAttendees === undefined) {
+            toast.error("Number of attendees must not be empty");
+            return;
+        }
+
+        if (numberOfAttendees < MinimumNumberOfAttendees) {
             toast.error(
                 `Number of attendees must be greater than ${
-                    DefaultNumberOfAttendees - 1
+                    MinimumNumberOfAttendees - 1
                 }`
             );
             return;
@@ -151,7 +152,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
         setHostEmail("");
         setStartTime(new Date());
         setEndTime(new Date());
-        setNumberOfAttendees(DefaultNumberOfAttendees);
+        setNumberOfAttendees(undefined);
         closeModal();
     };
 
@@ -161,6 +162,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
+            ariaHideApp={false}
         >
             <div className="row">
                 <div className="col">
@@ -220,7 +222,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             type="datetime-local"
                             className="form-control"
                             disabled={createRoomMutation.isLoading}
-                            value={startTime.toISOString().slice(0, 16)}
+                            value={ToISOStringLocal(startTime).slice(0, 16)}
                             onChange={(e) =>
                                 setStartTime(new Date(e.target.value))
                             }
@@ -236,7 +238,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             type="datetime-local"
                             className="form-control"
                             disabled={createRoomMutation.isLoading}
-                            value={endTime.toISOString().slice(0, 16)}
+                            value={ToISOStringLocal(endTime).slice(0, 16)}
                             onChange={(e) =>
                                 setEndTime(new Date(e.target.value))
                             }
@@ -270,20 +272,6 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                         onClick={handleSubmit}
                     >
                         Save Change
-                    </button>
-                </div>
-            </div>
-
-            <div className="row mt-1 mb-1">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-danger w-100"
-                        disabled={createRoomMutation.isLoading}
-                        hidden={createRoomMutation.isSuccess}
-                        onClick={clearAndCloseModal}
-                    >
-                        Close
                     </button>
                 </div>
             </div>
@@ -359,6 +347,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
             onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
+            ariaHideApp={false}
         >
             <div className="row">
                 <div className="col">
@@ -423,19 +412,6 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                     </button>
                 </div>
             </div>
-
-            <div className="row mt-1 mb-1">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-danger w-100"
-                        disabled={joinRoomMutation.isLoading}
-                        onClick={clearAndCloseModal}
-                    >
-                        Close
-                    </button>
-                </div>
-            </div>
         </Modal>
     );
 };
@@ -458,11 +434,18 @@ const Home: NextPage = (data) => {
                 isOpen={modalOpeningState === "openingJoinRoomModal"}
                 closeModal={() => closeModal()}
             />
-                <div className="h-100 d-flex align-items-center justify-content-center flex-column">
+            <div
+                className="h-100 d-flex align-items-center justify-content-center"
+                style={{
+                    backgroundColor: "#D9AFD9",
+                    backgroundImage: "linear-gradient(0deg, #D9AFD9 0%, #97D9E1 100%)",
+                }}
+            >
+                <div className="d-flex align-items-center justify-content-center flex-column gap-3 ">
                     <h1 className="text-center">Meeting Scheduler</h1>
                     <button
                         type="button"
-                        className="btn btn-outline-success "
+                        className="btn btn-success "
                         onClick={() =>
                             setModalOpeningState("openingCreateRoomModal")
                         }
@@ -471,7 +454,7 @@ const Home: NextPage = (data) => {
                     </button>
                     <button
                         type="button"
-                        className="btn btn-outline-primary"
+                        className="btn btn-primary"
                         onClick={() =>
                             setModalOpeningState("openingJoinRoomModal")
                         }
@@ -479,6 +462,7 @@ const Home: NextPage = (data) => {
                         Join a room
                     </button>
                 </div>
+            </div>
         </>
     );
 };

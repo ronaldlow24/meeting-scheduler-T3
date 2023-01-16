@@ -1,11 +1,6 @@
 import { Html, Head, Main, NextScript } from 'next/document'
-import { ToastContainer } from "react-toastify";
-import Modal from "react-modal";
-Modal.setAppElement("#__next");
 
 export default function Document() {
-
-
   return (
     <Html>
       <Head>
@@ -13,7 +8,6 @@ export default function Document() {
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossOrigin="anonymous" />
       </Head>
       <body>
-        <ToastContainer />
         <Main />
         <NextScript />
       </body>
