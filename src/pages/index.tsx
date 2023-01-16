@@ -458,37 +458,27 @@ const Home: NextPage = (data) => {
                 isOpen={modalOpeningState === "openingJoinRoomModal"}
                 closeModal={() => closeModal()}
             />
-            <main>
-                <div className="container">
+                <div className="h-100 d-flex align-items-center justify-content-center flex-column">
                     <h1 className="text-center">Meeting Scheduler</h1>
-                    <div className="row">
-                        <div className="col-12 text-center">
-                            <button
-                                type="button"
-                                className="btn btn-outline-success"
-                                onClick={() =>
-                                    setModalOpeningState(
-                                        "openingCreateRoomModal"
-                                    )
-                                }
-                            >
-                                Create a room
-                            </button>
-                        </div>
-                        <div className="col-12 text-center">
-                            <button
-                                type="button"
-                                className="btn btn-outline-primary"
-                                onClick={() =>
-                                    setModalOpeningState("openingJoinRoomModal")
-                                }
-                            >
-                                Join a room
-                            </button>
-                        </div>
-                    </div>
+                    <button
+                        type="button"
+                        className="btn btn-outline-success "
+                        onClick={() =>
+                            setModalOpeningState("openingCreateRoomModal")
+                        }
+                    >
+                        Create a room
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-outline-primary"
+                        onClick={() =>
+                            setModalOpeningState("openingJoinRoomModal")
+                        }
+                    >
+                        Join a room
+                    </button>
                 </div>
-            </main>
         </>
     );
 };
