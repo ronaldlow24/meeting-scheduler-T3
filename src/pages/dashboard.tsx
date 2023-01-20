@@ -1,4 +1,4 @@
-import { type NextPage, GetServerSideProps } from "next";
+import { type NextPage, GetServerSideProps, GetStaticProps } from "next";
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -82,13 +82,20 @@ const HorizontalTimeLine: React.FC<{
     );
 };
 
-const Dashboard: NextPage<DashboardProps> = (props) => {
+const Dashboard: NextPage = () => {
+    const getRoomQuery = trpc.room.getRoomBySession.useQuery();
+
+    if(getRoomQuery.isSuccess){
+        console.log("fsfsffsfsf")
+        console.log(getRoomQuery.data);
+    }    
+
     const confirmMeetingByHostMutation =
         trpc.room.confirmMeetingByHost.useMutation();
     const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
     const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
 
-    const [dashboardProp, setDashboardProp] = useState<DashboardProps>(props);
+    const [dashboardProp, setDashboardProp] = useState<DashboardProps>();
     const [startDatetime, setStartDatetime] = useState<Date>(new Date());
     const [endDatetime, setEndDatetime] = useState<Date>(new Date());
     const [datetimeMode, setDatetimeMode] =
@@ -101,10 +108,6 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
         new Date()
     );
 
-    const IsMeetingStarted = dashboardProp.room.actualStartTimeUTC != null;
-    const IsHost =
-        dashboardProp.attendee.find((s) => s.id == dashboardProp.currentUserId)?.isHost == true;
-
     const handleChangeDatetime = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const inputtedDatetime = new Date(value);
@@ -114,20 +117,10 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 return;
             }
 
-            if(inputtedDatetime < dashboardProp.room.availableStartDateTimeUTC){
-                toast.error("Start datetime must be greater than available start datetime");
-                return;
-            }
-
             setStartDatetime(new Date(value));
         } else if (name === "endDatetime") {
             if (inputtedDatetime <= startDatetime) {
                 toast.error("End datetime must be greater than start datetime");
-                return;
-            }
-
-            if(inputtedDatetime > dashboardProp.room.availableEndDateTimeUTC){
-                toast.error("End datetime must be less than available end datetime");
                 return;
             }
 
@@ -139,16 +132,6 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
 
         if(actualStartDatetime >= actualEndDatetime){
             toast.error("Start datetime must be less than end datetime");
-            return;
-        }
-
-        if(actualStartDatetime < dashboardProp.room.availableStartDateTimeUTC){
-            toast.error("Start datetime must be greater than available start datetime");
-            return;
-        }
-
-        if(actualEndDatetime > dashboardProp.room.availableEndDateTimeUTC){
-            toast.error("End datetime must be less than available end datetime");
             return;
         }
 
@@ -186,7 +169,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
         if (result) {
             toast.success("Meeting time submitted");
 
-            const getRoomQuery = trpc.room.getRoomBySession.useQuery();
+            getRoomQuery.refetch();
 
             if (getRoomQuery.isError) {
                 toast.error(getRoomQuery.error.message);
@@ -197,7 +180,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                 room: getRoomQuery.data!.room,
                 attendee: getRoomQuery.data!.attendee,
                 attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
-                currentUserId: dashboardProp.currentUserId,
+                currentUserId: getRoomQuery.data!.currentUserId,
             });
         }
     };
@@ -207,27 +190,27 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
-                    <h3 className="text-center">Title : {dashboardProp.room.title}</h3>
-                    <h3 className="text-center">Available Start Time : {dashboardProp.room.availableStartDateTimeUTC.toString()} ({dashboardProp.room.timeZone})</h3>
-                    <h3 className="text-center">Available End Time : {dashboardProp.room.availableEndDateTimeUTC.toString()} ({dashboardProp.room.timeZone})</h3>
+                    <h3 className="text-center">Title : {getRoomQuery.data?.room.title}</h3>
+                    <h3 className="text-center">Available Start Time : {getRoomQuery.data?.room.availableStartDateTimeUTC.toString()} ({getRoomQuery.data?.room.timeZone})</h3>
+                    <h3 className="text-center">Available End Time : {getRoomQuery.data?.room.availableEndDateTimeUTC.toString()} ({getRoomQuery.data?.room.timeZone})</h3>
 
-                    {IsMeetingStarted && (
+                    {getRoomQuery.data?.room.actualEndTimeUTC && (
                         <>
                             <div className="row">
                                 <div className="col-12 text-center">
                                     <h2>Meeting Already Confirmed!</h2>
                                     <p>
-                                        Meeting started at {dashboardProp.room.actualStartTimeUTC!.toString()} ({dashboardProp.room.timeZone})
+                                        Meeting started at {getRoomQuery.data?.room.actualStartTimeUTC!.toString()} ({getRoomQuery.data?.room.timeZone})
                                     </p>
                                     <p>
-                                        Meeting ended at {dashboardProp.room.actualEndTimeUTC!.toString()} ({dashboardProp.room.timeZone})
+                                        Meeting ended at {getRoomQuery.data?.room.actualEndTimeUTC!.toString()} ({getRoomQuery.data?.room.timeZone})
                                     </p>
                                 </div>
                             </div>
                         </>
                     )}
 
-                    {!IsMeetingStarted && IsHost && (
+                    {!getRoomQuery.data?.room.actualEndTimeUTC && getRoomQuery.data?.attendee.find(s => s.id == getRoomQuery.data.currentUserId)?.isHost && (
                         <div className="row">
                             <div className="col-12 text-center">
                                 <h2>Confirm Meeting</h2>
@@ -276,7 +259,7 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                         </div>
                     )}
 
-                    {!IsMeetingStarted && !IsHost && (
+                    {!getRoomQuery.data?.room.actualEndTimeUTC && !getRoomQuery.data?.attendee.find(s => s.id == getRoomQuery.data.currentUserId)?.isHost && (
                         <>
                             <div className="row">
                                 <div className="col-12 text-center">
@@ -352,15 +335,15 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
                         </>
                     )}
 
-                    {dashboardProp.attendee.map((attendee) => {
+                    {getRoomQuery.data?.attendee.map((attendee) => {
                         const attendeeDatetimeRange =
-                            dashboardProp.attendeeDatetimeRange.filter(
+                        getRoomQuery.data?.attendeeDatetimeRange.filter(
                                 (x) => x.meetingRoomAttendeeId === attendee.id
                             );
 
                         return (
                             <HorizontalTimeLine
-                                room={dashboardProp.room}
+                                room={getRoomQuery.data?.room}
                                 attendee={attendee}
                                 attendeeDatetimeRange={attendeeDatetimeRange}
                             />
@@ -370,28 +353,6 @@ const Dashboard: NextPage<DashboardProps> = (props) => {
             </main>
         </>
     );
-};
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-    const getRoomQuery = trpc.room.getRoomBySession.useQuery();
-
-    if (getRoomQuery.isError) {
-        toast.error(getRoomQuery.error.message);
-        return {
-            props: {},
-        };
-    }
-
-    const result: DashboardProps = {
-        room: getRoomQuery.data!.room,
-        attendee: getRoomQuery.data!.attendee,
-        attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
-        currentUserId: context.req.session.user?.meetingRoomAttendeeId!,
-    };
-
-    return {
-        props: result,
-    };
 };
 
 export default Dashboard;

@@ -2,10 +2,11 @@ import Modal from "react-modal";
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import { useState } from "react";
-import Router from "next/router";
 import { ToISOStringLocal, ValidateEmail } from "../utils/common";
 import { withSessionSsr } from "../utils/session";
 import { NextPage } from "next";
+import { useRouter } from 'next/router'
+
 
 const modalCustomStyles = {
     content: {
@@ -310,6 +311,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
     const [secretKey, setSecretKey] = useState<string>("");
     const [attendeeName, setAttendeeName] = useState<string>("");
     const [attendeeEmail, setAttendeeEmail] = useState<string>("");
+    const router = useRouter()
 
     const handleSubmit = async () => {
         //validate all input
@@ -352,7 +354,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
         toast.success("Joined room successfully, will redirect to room page");
 
         setTimeout(() => {
-            Router.push("/dashboard");
+            router.push("/dashboard");
         }, 1300);
     };
 
@@ -435,7 +437,6 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                         type="button"
                         className="btn btn-success w-100"
                         disabled={joinRoomMutation.isLoading}
-                        hidden={joinRoomMutation.isSuccess}
                         onClick={handleSubmit}
                     >
                         Join Room
@@ -449,7 +450,6 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                         type="button"
                         className="btn btn-danger w-100"
                         disabled={joinRoomMutation.isLoading}
-                        hidden={joinRoomMutation.isSuccess}
                         onClick={clearAndCloseModal}
                     >
                         Close
@@ -516,7 +516,13 @@ const Home: NextPage = (data) => {
 export const getServerSideProps = withSessionSsr(
     async function getServerSideProps(context) {
         if (context.req.session.user) {
-            Router.push("/dashboard");
+            return {
+                redirect: {
+                  permanent: false,
+                  destination: "/dashboard",
+                },
+                props:{},
+              };
         }
 
         return {

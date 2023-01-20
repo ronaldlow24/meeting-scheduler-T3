@@ -51,6 +51,7 @@ export const roomRouter = router({
             room,
             attendee,
             attendeeDatetimeRange,
+            currentUserId: user.meetingRoomAttendeeId
         };
 
         return finalData;
@@ -136,9 +137,11 @@ export const roomRouter = router({
             });
 
             if (!room) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                });
+                return {
+                    result: false,
+                    data: null,
+                    error: "Room not found",
+                };
             }
 
             //check if the room is full
