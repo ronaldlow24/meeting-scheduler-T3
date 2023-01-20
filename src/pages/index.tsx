@@ -47,16 +47,6 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
         const inputValue = parseInt(e.target.value);
-
-        if (inputValue < MinimumNumberOfAttendees) {
-            toast.error(
-                `Number of attendees must be greater than ${
-                    MinimumNumberOfAttendees - 1
-                }`
-            );
-            return;
-        }
-
         setNumberOfAttendees(inputValue);
     };
 
@@ -163,6 +153,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             style={modalCustomStyles}
             contentLabel="Example Modal"
             ariaHideApp={false}
+            shouldCloseOnOverlayClick={false}
         >
             <div className="row">
                 <div className="col">
@@ -172,8 +163,9 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="roomTitleInput"
                             type="text"
                             className="form-control"
                             placeholder="Meeting Room Title"
@@ -181,14 +173,16 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             value={roomTitle}
                             onChange={(e) => setRoomTitle(e.target.value)}
                         />
+                        <label htmlFor="roomTitleInput">Meeting Room Title</label>
                     </div>
                 </div>
             </div>
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="hostNameInput"
                             type="text"
                             className="form-control"
                             placeholder="Host Name"
@@ -196,14 +190,16 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             value={hostName}
                             onChange={(e) => setHostName(e.target.value)}
                         />
+                        <label htmlFor="hostNameInput">Host Name</label>
                     </div>
                 </div>
             </div>
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="hostEmailInput"
                             type="email"
                             className="form-control"
                             placeholder="Host Email"
@@ -211,14 +207,16 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             value={hostEmail}
                             onChange={(e) => setHostEmail(e.target.value)}
                         />
+                        <label htmlFor="hostEmailInput">Host Email</label>
                     </div>
                 </div>
             </div>
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="startTimeInput"
                             type="datetime-local"
                             className="form-control"
                             disabled={createRoomMutation.isLoading}
@@ -227,14 +225,16 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                                 setStartTime(new Date(e.target.value))
                             }
                         />
+                        <label htmlFor="startTimeInput">Start Time</label>
                     </div>
                 </div>
             </div>
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="endTimeInput"
                             type="datetime-local"
                             className="form-control"
                             disabled={createRoomMutation.isLoading}
@@ -243,21 +243,29 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                                 setEndTime(new Date(e.target.value))
                             }
                         />
+                        <label htmlFor="endTimeInput">End Time</label>
                     </div>
                 </div>
             </div>
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="numberOfAttendeesInput"
                             type="number"
                             className="form-control"
                             placeholder="Number of Attendees"
                             disabled={createRoomMutation.isLoading}
                             value={numberOfAttendees}
+                            onKeyDown={(evt) =>
+                                evt.key === "e" && evt.preventDefault()
+                            }
                             onChange={(e) => handleChangeNumberOfAttendees(e)}
                         />
+                        <label htmlFor="numberOfAttendeesInput">
+                            Number of Attendees
+                        </label>
                     </div>
                 </div>
             </div>
@@ -272,6 +280,20 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                         onClick={handleSubmit}
                     >
                         Save Change
+                    </button>
+                </div>
+            </div>
+
+            <div className="row">
+                <div className="col">
+                    <button
+                        type="button"
+                        className="btn btn-danger w-100"
+                        disabled={createRoomMutation.isLoading}
+                        hidden={createRoomMutation.isSuccess}
+                        onClick={clearAndCloseModal}
+                    >
+                        Close
                     </button>
                 </div>
             </div>
@@ -348,6 +370,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
             style={modalCustomStyles}
             contentLabel="Example Modal"
             ariaHideApp={false}
+            shouldCloseOnOverlayClick={false}
         >
             <div className="row">
                 <div className="col">
@@ -357,8 +380,9 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="serectKeyInput"
                             type="text"
                             className="form-control"
                             placeholder="Secret Key"
@@ -366,14 +390,16 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             value={secretKey}
                             onChange={(e) => setSecretKey(e.target.value)}
                         />
+                        <label htmlFor="serectKeyInput">Secret Key</label>
                     </div>
                 </div>
             </div>
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="attendeeNameInput"
                             type="text"
                             className="form-control"
                             placeholder="Name"
@@ -381,14 +407,16 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             value={attendeeName}
                             onChange={(e) => setAttendeeName(e.target.value)}
                         />
+                        <label htmlFor="attendeeNameInput">Name</label>
                     </div>
                 </div>
             </div>
 
             <div className="row mt-3">
                 <div className="col">
-                    <div className="input-group">
+                    <div className="form-floating">
                         <input
+                            id="attendeeEmailInput"
                             type="text"
                             className="form-control"
                             placeholder="Email"
@@ -396,6 +424,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             value={attendeeEmail}
                             onChange={(e) => setAttendeeEmail(e.target.value)}
                         />
+                        <label htmlFor="attendeeEmailInput">Email</label>
                     </div>
                 </div>
             </div>
@@ -406,12 +435,28 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                         type="button"
                         className="btn btn-success w-100"
                         disabled={joinRoomMutation.isLoading}
+                        hidden={joinRoomMutation.isSuccess}
                         onClick={handleSubmit}
                     >
                         Join Room
                     </button>
                 </div>
             </div>
+
+            <div className="row">
+                <div className="col">
+                    <button
+                        type="button"
+                        className="btn btn-danger w-100"
+                        disabled={joinRoomMutation.isLoading}
+                        hidden={joinRoomMutation.isSuccess}
+                        onClick={clearAndCloseModal}
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+                
         </Modal>
     );
 };
@@ -438,7 +483,8 @@ const Home: NextPage = (data) => {
                 className="h-100 d-flex align-items-center justify-content-center"
                 style={{
                     backgroundColor: "#D9AFD9",
-                    backgroundImage: "linear-gradient(0deg, #D9AFD9 0%, #97D9E1 100%)",
+                    backgroundImage:
+                        "linear-gradient(0deg, #D9AFD9 0%, #97D9E1 100%)",
                 }}
             >
                 <div className="d-flex align-items-center justify-content-center flex-column gap-3 ">
