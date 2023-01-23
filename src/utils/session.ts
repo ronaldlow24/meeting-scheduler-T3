@@ -1,4 +1,5 @@
 // this file is a wrapper with defaults to be used in both API routes and `getServerSideProps` functions
+import { IncomingMessage, ServerResponse } from "http";
 import { getIronSession, IronSessionOptions } from "iron-session";
 import { withIronSessionSsr } from "iron-session/next";
 import { GetServerSidePropsContext, GetServerSidePropsResult, NextApiRequest, NextApiResponse } from "next";
@@ -17,20 +18,30 @@ export const getSession = async (request : { req: NextApiRequest, res: NextApiRe
   return session;
 };
 
-export const isLoggedIn = async (request : { req: NextApiRequest, res: NextApiResponse }) => {
+export const getSessionSSR = async (request : { req: IncomingMessage, res: ServerResponse }) => {
   const session = await getIronSession(request.req, request.res, sessionOptions);
+  return session;
+};
+
+export const isLoggedIn = async (request : { req: NextApiRequest, res: NextApiResponse }) => {
+  const session = await getSession(request);
+  return session.user !== undefined;
+};
+
+export const isLoggedInSSR = async (request : { req: IncomingMessage, res: ServerResponse }) => {
+  const session = await getSessionSSR(request);
   return session.user !== undefined;
 };
 
 export const login = async (request : { req: NextApiRequest, res: NextApiResponse }, user: User) => {
-  const session = await getIronSession(request.req, request.res, sessionOptions);
+  const session = await getSession(request)
   session.user = user;
   await session.save();
   return session;
 };
 
 export const logout = async (request : { req: NextApiRequest, res: NextApiResponse }) => {
-  const session = await getIronSession(request.req, request.res, sessionOptions);
+  const session = await getSession(request)
   session.destroy();
   return session;
 };

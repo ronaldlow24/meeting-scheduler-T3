@@ -3,10 +3,9 @@ import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import { useState } from "react";
 import { ToISOStringLocal, ValidateEmail } from "../utils/common";
-import { withSessionSsr } from "../utils/session";
-import { NextPage } from "next";
-import { useRouter } from 'next/router'
-
+import { isLoggedInSSR } from "../utils/session";
+import { GetServerSideProps, NextPage } from "next";
+import { useRouter } from "next/router";
 
 const modalCustomStyles = {
     content: {
@@ -26,6 +25,10 @@ type BasedModalComponentType = {
     closeModal: () => void;
 };
 
+type JoinRoomModalComponentType = BasedModalComponentType & {
+    roomSecretKey: string | undefined;
+};
+
 type ModalOpeningState =
     | "openingCreateRoomModal"
     | "openingJoinRoomModal"
@@ -36,6 +39,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
     closeModal,
 }) => {
     const createRoomMutation = trpc.room.createRoom.useMutation();
+    const router = useRouter();
 
     const [roomTitle, setRoomTitle] = useState<string>("");
     const [hostName, setHostName] = useState<string>("");
@@ -119,22 +123,48 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
             return;
         }
 
+        clearAndCloseModal();
+
+        const RoomURL = `${window.location.origin}?roomSecretKey=${createRoomResult.secretKey}`;
+
         toast.success(
-            `Room created successfully, your secret is copied to clipboard, please save it immediately!`,
+            `Room created successfully, your room URL is copied to clipboard, please save it immediately!`
+        );
+
+        navigator.clipboard.writeText(RoomURL);
+
+        //toast a component with copy function
+        toast(
+            <strong
+                onClick={() => {
+                    navigator.clipboard.writeText(RoomURL);
+                    toast.success("Copied to clipboard");
+                }}
+                style={{ cursor: "pointer" }}
+            >
+                Click here to copy room URL again
+            </strong>,
             {
                 autoClose: false,
+                closeOnClick: false,
             }
         );
 
-        navigator.clipboard.writeText(createRoomResult.secretKey);
-
-        toast.info(`Your secret key is ${createRoomResult.secretKey}`, {
-            autoClose: false,
-        });
-
-        setTimeout(() => {
-            clearAndCloseModal();
-        }, 5000);
+        //toast a component with join function
+        toast(
+            <strong
+                onClick={() => {
+                    router.push("/dashboard");
+                }}
+                style={{ cursor: "pointer" }}
+            >
+                Click here to join room
+            </strong>,
+            {
+                autoClose: false,
+                closeOnClick: false,
+            }
+        );
     };
 
     const clearAndCloseModal = () => {
@@ -174,7 +204,9 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             value={roomTitle}
                             onChange={(e) => setRoomTitle(e.target.value)}
                         />
-                        <label htmlFor="roomTitleInput">Meeting Room Title</label>
+                        <label htmlFor="roomTitleInput">
+                            Meeting Room Title
+                        </label>
                     </div>
                 </div>
             </div>
@@ -302,16 +334,17 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
     );
 };
 
-const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
+const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
     isOpen,
     closeModal,
+    roomSecretKey
 }) => {
     const joinRoomMutation = trpc.room.joinRoom.useMutation();
 
-    const [secretKey, setSecretKey] = useState<string>("");
+    const [secretKey, setSecretKey] = useState<string>(roomSecretKey ? roomSecretKey : "");
     const [attendeeName, setAttendeeName] = useState<string>("");
     const [attendeeEmail, setAttendeeEmail] = useState<string>("");
-    const router = useRouter()
+    const router = useRouter();
 
     const handleSubmit = async () => {
         //validate all input
@@ -388,7 +421,7 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             type="text"
                             className="form-control"
                             placeholder="Secret Key"
-                            disabled={joinRoomMutation.isLoading}
+                            disabled={((roomSecretKey != undefined) || joinRoomMutation.isLoading)}
                             value={secretKey}
                             onChange={(e) => setSecretKey(e.target.value)}
                         />
@@ -456,18 +489,20 @@ const JoinRoomModalComponent: React.FC<BasedModalComponentType> = ({
                     </button>
                 </div>
             </div>
-                
         </Modal>
     );
 };
 
 const Home: NextPage = (data) => {
+    const router = useRouter()
+
+    const { roomSecretKey } = router.query
+
     const closeModal = () => {
         setModalOpeningState("close");
     };
 
-    const [modalOpeningState, setModalOpeningState] =
-        useState<ModalOpeningState>("close");
+    const [modalOpeningState, setModalOpeningState] = useState<ModalOpeningState>(roomSecretKey ? "openingJoinRoomModal" : "close");
 
     return (
         <>
@@ -478,6 +513,7 @@ const Home: NextPage = (data) => {
             <JoinRoomModalComponent
                 isOpen={modalOpeningState === "openingJoinRoomModal"}
                 closeModal={() => closeModal()}
+                roomSecretKey={roomSecretKey as string | undefined}
             />
             <div
                 className="h-100 d-flex align-items-center justify-content-center"
@@ -513,22 +549,22 @@ const Home: NextPage = (data) => {
     );
 };
 
-export const getServerSideProps = withSessionSsr(
-    async function getServerSideProps(context) {
-        if (context.req.session.user) {
-            return {
-                redirect: {
-                  permanent: false,
-                  destination: "/dashboard",
-                },
-                props:{},
-              };
-        }
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+    const isLogin = await isLoggedInSSR({ req, res });
 
+    if (isLogin) {
         return {
+            redirect: {
+                permanent: false,
+                destination: "/dashboard",
+            },
             props: {},
         };
     }
-);
+
+    return {
+        props: {},
+    };
+};
 
 export default Home;

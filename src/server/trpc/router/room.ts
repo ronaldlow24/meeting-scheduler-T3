@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { User } from "../../../types/User";
-import { isLoggedIn, login, logout } from "../../../utils/session";
+import { getSession, isLoggedIn, login, logout } from "../../../utils/session";
 import { router, publicProcedure, protectedProcedure } from "../trpc";
 import { MeetingRoomAttendeeDatetimeRangeDatetimeMode } from "@prisma/client";
 import { SendEmail } from "../../../utils/mail";
@@ -10,7 +10,10 @@ import moment from "moment-timezone";
 export const roomRouter = router({
     getRoomBySession: protectedProcedure
         .query(async ({ ctx }) => {
-        const user = ctx.request.req.session.user!;
+
+        const session = await getSession({req : ctx.request.req, res : ctx.request.res});
+
+        const user = session.user!;
 
         const room = await ctx.prisma.meetingRoom.findUnique({
             where: {
@@ -130,6 +133,8 @@ export const roomRouter = router({
         )
         .mutation(async ({ input, ctx }) => {
             //join the room
+            const session = await getSession({req : ctx.request.req, res : ctx.request.res});
+
             const room = await ctx.prisma.meetingRoom.findUnique({
                 where: {
                     secretKey: input.secretKey,
@@ -161,7 +166,7 @@ export const roomRouter = router({
             //check if the user is already in the room
             let attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
                 where: {
-                    id: ctx.request.req.session.user!.meetingRoomAttendeeId,
+                    id: session.user!.meetingRoomAttendeeId,
                 },
             });
 
@@ -192,7 +197,9 @@ export const roomRouter = router({
         }),
     deleteRoom: protectedProcedure
         .mutation(async ({ ctx }) => {
-            const user = ctx.request.req.session.user!;
+            const session = await getSession({req : ctx.request.req, res : ctx.request.res});
+
+            const user = session.user!;
             const room = await ctx.prisma.meetingRoom.findUnique({
                 where: {
                     id: user.meetingRoomId,
@@ -267,8 +274,9 @@ export const roomRouter = router({
 
             const startDateTimeUTC = moment(input.startDateTime).utc().toDate();
             const endDateTimeUTC = moment(input.endDateTime).utc().toDate();
+            const session = await getSession({req : ctx.request.req, res : ctx.request.res});
 
-            const user = ctx.request.req.session.user;
+            const user = session.user;
 
             const attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
                 where: {
@@ -352,8 +360,9 @@ export const roomRouter = router({
 
             const startDateTimeUTC = moment(input.startDatetime).utc().toDate();
             const endDateTimeUTC = moment(input.endDatetime).utc().toDate();
+            const session = await getSession({req : ctx.request.req, res : ctx.request.res});
 
-            const user = ctx.request.req.session.user;
+            const user = session.user;
             
             const attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
                 where: {

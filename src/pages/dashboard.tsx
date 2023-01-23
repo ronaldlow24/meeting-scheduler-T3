@@ -2,26 +2,20 @@ import { type NextPage, GetServerSideProps, GetStaticProps } from "next";
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useState } from "react";
-import Router from "next/router";
+import { useEffect, useState } from "react";
 import type {
     MeetingRoom,
     MeetingRoomAttendee,
     MeetingRoomAttendeeDatetimeRange,
     MeetingRoomAttendeeDatetimeRangeDatetimeMode,
 } from "@prisma/client";
-
-type DashboardProps = {
-    room: MeetingRoom;
-    attendee: MeetingRoomAttendee[];
-    attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
-    currentUserId: string;
-};
+import { useRouter } from "next/router";
 
 const FreeColor = "#00FF00";
 const BusyColor = "#FF0000";
 
 const HorizontalTimeLine: React.FC<{
+    key: string;
     room: MeetingRoom;
     attendee: MeetingRoomAttendee;
     attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
@@ -42,7 +36,7 @@ const HorizontalTimeLine: React.FC<{
                         })
                         .map((attendeeDatetimeRange) => {
                             return (
-                                <div className="col-2">
+                                <div className="col-2" key={attendeeDatetimeRange.id}>
                                     <div
                                         style={{
                                             width: "100%",
@@ -83,24 +77,28 @@ const HorizontalTimeLine: React.FC<{
 };
 
 const Dashboard: NextPage = () => {
-    const getRoomQuery = trpc.room.getRoomBySession.useQuery();
+    const router = useRouter()
 
-    if(getRoomQuery.isSuccess){
-        console.log("fsfsffsfsf")
-        console.log(getRoomQuery.data);
-    }    
-
-    const confirmMeetingByHostMutation =
-        trpc.room.confirmMeetingByHost.useMutation();
+    const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined,{
+        retry: false,
+    });
+    const confirmMeetingByHostMutation = trpc.room.confirmMeetingByHost.useMutation();
     const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
     const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
 
-    const [dashboardProp, setDashboardProp] = useState<DashboardProps>();
+    useEffect(() => {
+        if(getRoomQuery.isError && getRoomQuery.error.data?.code === "UNAUTHORIZED"){
+            toast.error("You are not logged in")
+            setTimeout(() => {
+                router.push("/")
+            }, 500);
+        }
+    }, [getRoomQuery.isError])
+
     const [startDatetime, setStartDatetime] = useState<Date>(new Date());
     const [endDatetime, setEndDatetime] = useState<Date>(new Date());
     const [datetimeMode, setDatetimeMode] =
         useState<MeetingRoomAttendeeDatetimeRangeDatetimeMode>("BUSY");
-
     const [actualStartDatetime, setActualStartDatetime] = useState<Date>(
         new Date()
     );
@@ -143,7 +141,7 @@ const Dashboard: NextPage = () => {
         if (result) {
             toast.success("Meeting confirmed");
             setTimeout(() => {
-                Router.reload();
+                router.reload();
             }, 1300);
         }
     };
@@ -154,7 +152,7 @@ const Dashboard: NextPage = () => {
         if (result) {
             toast.success("Meeting cancelled");
             setTimeout(() => {
-                Router.push("/");
+                router.push("/");
             }, 1300);
         }
     };
@@ -175,13 +173,6 @@ const Dashboard: NextPage = () => {
                 toast.error(getRoomQuery.error.message);
                 return;
             }
-
-            setDashboardProp({
-                room: getRoomQuery.data!.room,
-                attendee: getRoomQuery.data!.attendee,
-                attendeeDatetimeRange: getRoomQuery.data!.attendeeDatetimeRange,
-                currentUserId: getRoomQuery.data!.currentUserId,
-            });
         }
     };
 
@@ -343,6 +334,7 @@ const Dashboard: NextPage = () => {
 
                         return (
                             <HorizontalTimeLine
+                                key={attendee.id}
                                 room={getRoomQuery.data?.room}
                                 attendee={attendee}
                                 attendeeDatetimeRange={attendeeDatetimeRange}
