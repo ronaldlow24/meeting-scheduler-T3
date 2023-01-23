@@ -7,43 +7,33 @@ import { User } from "../types/User";
 
 const sessionOptions: IronSessionOptions = {
   password: process.env.SECRET_COOKIE_PASSWORD as string,
+  ttl: 86400, // 1 day
   cookieName: "nextjs-iron-session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",
   },
 };
 
-export const getSession = async (request : { req: NextApiRequest, res: NextApiResponse }) => {
+export const getSession = async (request : { req: NextApiRequest | IncomingMessage, res: NextApiResponse | ServerResponse }) => {
   const session = await getIronSession(request.req, request.res, sessionOptions);
   return session;
 };
 
-export const getSessionSSR = async (request : { req: IncomingMessage, res: ServerResponse }) => {
-  const session = await getIronSession(request.req, request.res, sessionOptions);
-  return session;
-};
 
-export const isLoggedIn = async (request : { req: NextApiRequest, res: NextApiResponse }) => {
+export const isLoggedIn = async (request : { req: NextApiRequest | IncomingMessage, res: NextApiResponse | ServerResponse }) => {
   const session = await getSession(request);
   return session.user !== undefined;
 };
 
-export const isLoggedInSSR = async (request : { req: IncomingMessage, res: ServerResponse }) => {
-  const session = await getSessionSSR(request);
-  return session.user !== undefined;
-};
-
-export const login = async (request : { req: NextApiRequest, res: NextApiResponse }, user: User) => {
+export const login = async (request : { req: NextApiRequest | IncomingMessage, res: NextApiResponse | ServerResponse }, user: User) => {
   const session = await getSession(request)
   session.user = user;
   await session.save();
-  return session;
 };
 
-export const logout = async (request : { req: NextApiRequest, res: NextApiResponse }) => {
+export const logout = async (request : { req: NextApiRequest | IncomingMessage, res: NextApiResponse | ServerResponse }) => {
   const session = await getSession(request)
   session.destroy();
-  return session;
 };
 
 // Theses types are compatible with InferGetStaticPropsType https://nextjs.org/docs/basic-features/data-fetching#typescript-use-getstaticprops

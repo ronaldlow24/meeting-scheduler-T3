@@ -3,7 +3,7 @@ import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
 import { useState } from "react";
 import { ToISOStringLocal, ValidateEmail } from "../utils/common";
-import { isLoggedInSSR } from "../utils/session";
+import { isLoggedIn, logout } from "../utils/session";
 import { GetServerSideProps, NextPage } from "next";
 import { useRouter } from "next/router";
 
@@ -549,8 +549,14 @@ const Home: NextPage = (data) => {
     );
 };
 
-export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
-    const isLogin = await isLoggedInSSR({ req, res });
+export const getServerSideProps: GetServerSideProps = async ({ req, res, query }) => {
+    const { roomSecretKey } = query;
+
+    if(roomSecretKey) {
+        await logout({ req, res });
+    }
+
+    const isLogin = await isLoggedIn({ req, res });
 
     if (isLogin) {
         return {

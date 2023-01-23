@@ -82,6 +82,7 @@ const Dashboard: NextPage = () => {
     const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined,{
         retry: false,
     });
+
     const confirmMeetingByHostMutation = trpc.room.confirmMeetingByHost.useMutation();
     const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
     const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
@@ -89,6 +90,13 @@ const Dashboard: NextPage = () => {
     useEffect(() => {
         if(getRoomQuery.isError && getRoomQuery.error.data?.code === "UNAUTHORIZED"){
             toast.error("You are not logged in")
+            setTimeout(() => {
+                router.push("/")
+            }, 500);
+        }
+
+        if(getRoomQuery.isError && getRoomQuery.error.data?.code === "NOT_FOUND"){
+            toast.error("Room not found")
             setTimeout(() => {
                 router.push("/")
             }, 500);
