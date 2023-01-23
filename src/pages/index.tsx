@@ -1,7 +1,7 @@
 import Modal from "react-modal";
 import { trpc } from "../utils/trpc";
 import { toast } from "react-toastify";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ToISOStringLocal, ValidateEmail } from "../utils/common";
 import { isLoggedIn, logout } from "../utils/session";
 import { GetServerSideProps, NextPage } from "next";
@@ -493,10 +493,22 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
     );
 };
 
-const Home: NextPage = (data) => {
+const Home: NextPage = () => {
     const router = useRouter()
-
     const { roomSecretKey } = router.query
+
+    const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined,{
+        retry: false,
+    });
+    const logoutMutation = trpc.room.logout.useMutation();
+
+    if(getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey == roomSecretKey){
+        router.push("/dashboard")
+    }
+
+    if(getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey != roomSecretKey){
+        logoutMutation.mutate();
+    }
 
     const closeModal = () => {
         setModalOpeningState("close");
@@ -547,30 +559,6 @@ const Home: NextPage = (data) => {
             </div>
         </>
     );
-};
-
-export const getServerSideProps: GetServerSideProps = async ({ req, res, query }) => {
-    const { roomSecretKey } = query;
-
-    if(roomSecretKey) {
-        await logout({ req, res });
-    }
-
-    const isLogin = await isLoggedIn({ req, res });
-
-    if (isLogin) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: "/dashboard",
-            },
-            props: {},
-        };
-    }
-
-    return {
-        props: {},
-    };
 };
 
 export default Home;
