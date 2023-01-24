@@ -145,6 +145,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                 Click here to copy room URL again
             </strong>,
             {
+                closeButton: false,
                 autoClose: false,
                 closeOnClick: false,
             }
@@ -161,6 +162,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                 Click here to join room
             </strong>,
             {
+                closeButton: false,
                 autoClose: false,
                 closeOnClick: false,
             }
@@ -290,7 +292,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
                             className="form-control"
                             placeholder="Number of Attendees"
                             disabled={createRoomMutation.isLoading}
-                            value={numberOfAttendees}
+                            value={numberOfAttendees ?? ""}
                             onKeyDown={(evt) =>
                                 evt.key === "e" && evt.preventDefault()
                             }
@@ -496,17 +498,19 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 const Home: NextPage = () => {
     const router = useRouter()
     const { roomSecretKey } = router.query
+    console.log(roomSecretKey)
 
+    const logoutMutation = trpc.room.logout.useMutation();
+    
     const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined,{
         retry: false,
     });
-    const logoutMutation = trpc.room.logout.useMutation();
 
-    if(getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey == roomSecretKey){
+    if(roomSecretKey && getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey == roomSecretKey){
         router.push("/dashboard")
     }
 
-    if(getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey != roomSecretKey){
+    if(roomSecretKey && getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey != roomSecretKey){
         logoutMutation.mutate();
     }
 
@@ -515,7 +519,6 @@ const Home: NextPage = () => {
     };
 
     const [modalOpeningState, setModalOpeningState] = useState<ModalOpeningState>(roomSecretKey ? "openingJoinRoomModal" : "close");
-
     return (
         <>
             <CreateRoomModalComponent

@@ -36,7 +36,10 @@ const HorizontalTimeLine: React.FC<{
                         })
                         .map((attendeeDatetimeRange) => {
                             return (
-                                <div className="col-2" key={attendeeDatetimeRange.id}>
+                                <div
+                                    className="col-2"
+                                    key={attendeeDatetimeRange.id}
+                                >
                                     <div
                                         style={{
                                             width: "100%",
@@ -50,7 +53,8 @@ const HorizontalTimeLine: React.FC<{
                                             }`,
                                         }}
                                     >
-                                        {attendeeDatetimeRange.startDateTimeUTC.toString()} ({room.timeZone})
+                                        {attendeeDatetimeRange.startDateTimeUTC.toString()}{" "}
+                                        ({room.timeZone})
                                     </div>
                                     <div
                                         style={{
@@ -65,7 +69,8 @@ const HorizontalTimeLine: React.FC<{
                                             }`,
                                         }}
                                     >
-                                        {attendeeDatetimeRange.endDateTimeUTC.toString()} ({room.timeZone})
+                                        {attendeeDatetimeRange.endDateTimeUTC.toString()}{" "}
+                                        ({room.timeZone})
                                     </div>
                                 </div>
                             );
@@ -77,31 +82,65 @@ const HorizontalTimeLine: React.FC<{
 };
 
 const Dashboard: NextPage = () => {
-    const router = useRouter()
+    const router = useRouter();
 
-    const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined,{
+    const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined, {
         retry: false,
     });
 
-    const confirmMeetingByHostMutation = trpc.room.confirmMeetingByHost.useMutation();
+    const confirmMeetingByHostMutation =
+        trpc.room.confirmMeetingByHost.useMutation();
     const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
     const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
+    const logoutMutation = trpc.room.logout.useMutation();
+    let isReneredLogoutToast = false;
 
     useEffect(() => {
-        if(getRoomQuery.isError && getRoomQuery.error.data?.code === "UNAUTHORIZED"){
-            toast.error("You are not logged in")
+        if (
+            getRoomQuery.isError &&
+            getRoomQuery.error.data?.code === "UNAUTHORIZED"
+        ) {
+            toast.error("You are not logged in");
             setTimeout(() => {
-                router.push("/")
+                router.push("/");
             }, 500);
         }
 
-        if(getRoomQuery.isError && getRoomQuery.error.data?.code === "NOT_FOUND"){
-            toast.error("Room not found")
+        if (
+            getRoomQuery.isError &&
+            getRoomQuery.error.data?.code === "NOT_FOUND"
+        ) {
+            toast.error("Room not found");
             setTimeout(() => {
-                router.push("/")
+                router.push("/");
             }, 500);
         }
-    }, [getRoomQuery.isError])
+
+        if (
+            !getRoomQuery.isFetched ||
+            isReneredLogoutToast ||
+            getRoomQuery.isError
+        )
+            return;
+        isReneredLogoutToast = true;
+        toast(
+            <strong
+                onClick={async () => {
+                    await logoutMutation.mutateAsync();
+                    router.push("/");
+                    toast.dismiss();
+                }}
+                style={{ cursor: "pointer" }}
+            >
+                Click here to logout ⛔
+            </strong>,
+            {
+                closeButton: false,
+                autoClose: false,
+                closeOnClick: false,
+            }
+        );
+    }, [getRoomQuery.isError]);
 
     const [startDatetime, setStartDatetime] = useState<Date>(new Date());
     const [endDatetime, setEndDatetime] = useState<Date>(new Date());
@@ -135,8 +174,7 @@ const Dashboard: NextPage = () => {
     };
 
     const handleConfirmMeeting = async () => {
-
-        if(actualStartDatetime >= actualEndDatetime){
+        if (actualStartDatetime >= actualEndDatetime) {
             toast.error("Start datetime must be less than end datetime");
             return;
         }
@@ -189,9 +227,19 @@ const Dashboard: NextPage = () => {
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>
-                    <h3 className="text-center">Title : {getRoomQuery.data?.room.title}</h3>
-                    <h3 className="text-center">Available Start Time : {getRoomQuery.data?.room.availableStartDateTimeUTC.toString()} ({getRoomQuery.data?.room.timeZone})</h3>
-                    <h3 className="text-center">Available End Time : {getRoomQuery.data?.room.availableEndDateTimeUTC.toString()} ({getRoomQuery.data?.room.timeZone})</h3>
+                    <h3 className="text-center">
+                        Title : {getRoomQuery.data?.room.title}
+                    </h3>
+                    <h3 className="text-center">
+                        Available Start Time :{" "}
+                        {getRoomQuery.data?.room.availableStartDateTimeUTC.toString()}{" "}
+                        ({getRoomQuery.data?.room.timeZone})
+                    </h3>
+                    <h3 className="text-center">
+                        Available End Time :{" "}
+                        {getRoomQuery.data?.room.availableEndDateTimeUTC.toString()}{" "}
+                        ({getRoomQuery.data?.room.timeZone})
+                    </h3>
 
                     {getRoomQuery.data?.room.actualEndTimeUTC && (
                         <>
@@ -199,70 +247,27 @@ const Dashboard: NextPage = () => {
                                 <div className="col-12 text-center">
                                     <h2>Meeting Already Confirmed!</h2>
                                     <p>
-                                        Meeting started at {getRoomQuery.data?.room.actualStartTimeUTC!.toString()} ({getRoomQuery.data?.room.timeZone})
+                                        Meeting started at{" "}
+                                        {getRoomQuery.data?.room.actualStartTimeUTC!.toString()}{" "}
+                                        ({getRoomQuery.data?.room.timeZone})
                                     </p>
                                     <p>
-                                        Meeting ended at {getRoomQuery.data?.room.actualEndTimeUTC!.toString()} ({getRoomQuery.data?.room.timeZone})
+                                        Meeting ended at{" "}
+                                        {getRoomQuery.data?.room.actualEndTimeUTC!.toString()}{" "}
+                                        ({getRoomQuery.data?.room.timeZone})
                                     </p>
                                 </div>
                             </div>
                         </>
                     )}
 
-                    {!getRoomQuery.data?.room.actualEndTimeUTC && getRoomQuery.data?.attendee.find(s => s.id == getRoomQuery.data.currentUserId)?.isHost && (
-                        <div className="row">
-                            <div className="col-12 text-center">
-                                <h2>Confirm Meeting</h2>
-                                <div className="row">
-                                    <div className="col-6">
-                                        <div className="form-group">
-                                            <label>Start Datetime</label>
-                                            <input
-                                                type="datetime-local"
-                                                className="form-control"
-                                                onChange={(e) => {
-                                                    setActualStartDatetime(
-                                                        new Date(e.target.value)
-                                                    );
-                                                }}
-                                            />
-
-                                            <label>End Datetime</label>
-                                            <input
-                                                type="datetime-local"
-                                                className="form-control"
-                                                onChange={(e) => {
-                                                    setActualEndDatetime(
-                                                        new Date(e.target.value)
-                                                    );
-                                                }}
-                                            />
-
-                                            <button
-                                                className="btn btn-primary mt-3"
-                                                onClick={handleConfirmMeeting}
-                                            >
-                                                Confirm Meeting
-                                            </button>
-
-                                            <button
-                                                className="btn btn-danger mt-3 ml-3"
-                                                onClick={handleCancelMeeting}
-                                            >
-                                                Cancel Meeting
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {!getRoomQuery.data?.room.actualEndTimeUTC && !getRoomQuery.data?.attendee.find(s => s.id == getRoomQuery.data.currentUserId)?.isHost && (
-                        <>
+                    {!getRoomQuery.data?.room.actualEndTimeUTC &&
+                        getRoomQuery.data?.attendee.find(
+                            (s) => s.id == getRoomQuery.data.currentUserId
+                        )?.isHost && (
                             <div className="row">
                                 <div className="col-12 text-center">
-                                    <h2>Submit Meeting Time</h2>
+                                    <h2>Confirm Meeting</h2>
                                     <div className="row">
                                         <div className="col-6">
                                             <div className="form-group">
@@ -270,73 +275,140 @@ const Dashboard: NextPage = () => {
                                                 <input
                                                     type="datetime-local"
                                                     className="form-control"
-                                                    name="startDatetime"
-                                                    onChange={
-                                                        handleChangeDatetime
-                                                    }
+                                                    onChange={(e) => {
+                                                        setActualStartDatetime(
+                                                            new Date(
+                                                                e.target.value
+                                                            )
+                                                        );
+                                                    }}
                                                 />
 
                                                 <label>End Datetime</label>
                                                 <input
                                                     type="datetime-local"
                                                     className="form-control"
-                                                    name="endDatetime"
-                                                    onChange={
-                                                        handleChangeDatetime
-                                                    }
-                                                />
-
-                                                <label>Datetime Mode</label>
-                                                <select
-                                                    className="form-control"
-                                                    name="datetimeMode"
                                                     onChange={(e) => {
-                                                        if (
-                                                            e.target.value ===
-                                                            "FREE"
-                                                        ) {
-                                                            setDatetimeMode(
+                                                        setActualEndDatetime(
+                                                            new Date(
                                                                 e.target.value
-                                                            );
-                                                        }
-
-                                                        if (
-                                                            e.target.value ===
-                                                            "BUSY"
-                                                        ) {
-                                                            setDatetimeMode(
-                                                                e.target.value
-                                                            );
-                                                        }
+                                                            )
+                                                        );
                                                     }}
-                                                >
-                                                    <option value="FREE">
-                                                        Available
-                                                    </option>
-                                                    <option value="BUSY">
-                                                        Not Available
-                                                    </option>
-                                                </select>
+                                                />
 
                                                 <button
                                                     className="btn btn-primary mt-3"
                                                     onClick={
-                                                        handleSubmitMeetingTime
+                                                        handleConfirmMeeting
                                                     }
                                                 >
-                                                    Submit Meeting Time
+                                                    Confirm Meeting
+                                                </button>
+
+                                                <button
+                                                    className="btn btn-danger mt-3 ml-3"
+                                                    onClick={
+                                                        handleCancelMeeting
+                                                    }
+                                                >
+                                                    Cancel Meeting
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </>
-                    )}
+                        )}
+
+                    {!getRoomQuery.data?.room.actualEndTimeUTC &&
+                        !getRoomQuery.data?.attendee.find(
+                            (s) => s.id == getRoomQuery.data.currentUserId
+                        )?.isHost && (
+                            <>
+                                <div className="row">
+                                    <div className="col-12 text-center">
+                                        <h2>Submit Meeting Time</h2>
+                                        <div className="row">
+                                            <div className="col-6">
+                                                <div className="form-group">
+                                                    <label>
+                                                        Start Datetime
+                                                    </label>
+                                                    <input
+                                                        type="datetime-local"
+                                                        className="form-control"
+                                                        name="startDatetime"
+                                                        onChange={
+                                                            handleChangeDatetime
+                                                        }
+                                                    />
+
+                                                    <label>End Datetime</label>
+                                                    <input
+                                                        type="datetime-local"
+                                                        className="form-control"
+                                                        name="endDatetime"
+                                                        onChange={
+                                                            handleChangeDatetime
+                                                        }
+                                                    />
+
+                                                    <label>Datetime Mode</label>
+                                                    <select
+                                                        className="form-control"
+                                                        name="datetimeMode"
+                                                        onChange={(e) => {
+                                                            if (
+                                                                e.target
+                                                                    .value ===
+                                                                "FREE"
+                                                            ) {
+                                                                setDatetimeMode(
+                                                                    e.target
+                                                                        .value
+                                                                );
+                                                            }
+
+                                                            if (
+                                                                e.target
+                                                                    .value ===
+                                                                "BUSY"
+                                                            ) {
+                                                                setDatetimeMode(
+                                                                    e.target
+                                                                        .value
+                                                                );
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value="FREE">
+                                                            Available
+                                                        </option>
+                                                        <option value="BUSY">
+                                                            Not Available
+                                                        </option>
+                                                    </select>
+
+                                                    <button
+                                                        className="btn btn-primary mt-3"
+                                                        onClick={
+                                                            handleSubmitMeetingTime
+                                                        }
+                                                    >
+                                                        Submit Meeting Time
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                     {getRoomQuery.data?.attendee.map((attendee) => {
                         const attendeeDatetimeRange =
-                        getRoomQuery.data?.attendeeDatetimeRange.filter(
+                            getRoomQuery.data?.attendeeDatetimeRange.filter(
                                 (x) => x.meetingRoomAttendeeId === attendee.id
                             );
 
