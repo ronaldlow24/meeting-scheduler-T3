@@ -138,6 +138,7 @@ const Dashboard: NextPage = () => {
                 closeButton: false,
                 autoClose: false,
                 closeOnClick: false,
+                draggable: false,
             }
         );
     }, [getRoomQuery.isError]);
