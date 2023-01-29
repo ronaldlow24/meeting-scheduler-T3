@@ -6,6 +6,7 @@ import { ToISOStringLocal, ValidateEmail } from "../utils/common";
 import { isLoggedIn, logout } from "../utils/session";
 import { GetServerSideProps, NextPage } from "next";
 import { useRouter } from "next/router";
+import { parse } from "querystring";
 
 const modalCustomStyles = {
     content: {
@@ -339,11 +340,13 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
 const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
     isOpen,
     closeModal,
-    roomSecretKey
+    roomSecretKey,
 }) => {
     const joinRoomMutation = trpc.room.joinRoom.useMutation();
 
-    const [secretKey, setSecretKey] = useState<string>(roomSecretKey ? roomSecretKey : "");
+    const [secretKey, setSecretKey] = useState<string>(
+        roomSecretKey ? roomSecretKey : ""
+    );
     const [attendeeName, setAttendeeName] = useState<string>("");
     const [attendeeEmail, setAttendeeEmail] = useState<string>("");
     const router = useRouter();
@@ -423,7 +426,10 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
                             type="text"
                             className="form-control"
                             placeholder="Secret Key"
-                            disabled={((roomSecretKey != undefined) || joinRoomMutation.isLoading)}
+                            disabled={
+                                roomSecretKey != undefined ||
+                                joinRoomMutation.isLoading
+                            }
                             value={secretKey}
                             onChange={(e) => setSecretKey(e.target.value)}
                         />
@@ -496,21 +502,32 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 };
 
 const Home: NextPage = () => {
-    const router = useRouter()
-    const { roomSecretKey } = router.query
-    console.log(roomSecretKey)
+    const router = useRouter();
+    const { roomSecretKey }  = parse(router.asPath.substr(router.asPath.indexOf("?") + 1));
 
     const logoutMutation = trpc.room.logout.useMutation();
-    
-    const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined,{
+
+    const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined, {
         retry: false,
     });
 
-    if(roomSecretKey && getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey == roomSecretKey){
-        router.push("/dashboard")
+    if (!roomSecretKey && getRoomQuery.isSuccess) {
+        router.push("/dashboard");
     }
 
-    if(roomSecretKey && getRoomQuery.isSuccess && getRoomQuery.data.room.secretKey != roomSecretKey){
+    if (
+        roomSecretKey &&
+        getRoomQuery.isSuccess &&
+        getRoomQuery.data.room.secretKey == roomSecretKey
+    ) {
+        router.push("/dashboard");
+    }
+
+    if (
+        roomSecretKey &&
+        getRoomQuery.isSuccess &&
+        getRoomQuery.data.room.secretKey != roomSecretKey
+    ) {
         logoutMutation.mutate();
     }
 
@@ -518,7 +535,10 @@ const Home: NextPage = () => {
         setModalOpeningState("close");
     };
 
-    const [modalOpeningState, setModalOpeningState] = useState<ModalOpeningState>(roomSecretKey ? "openingJoinRoomModal" : "close");
+    const [modalOpeningState, setModalOpeningState] =
+        useState<ModalOpeningState>(
+            roomSecretKey ? "openingJoinRoomModal" : "close"
+        );
     return (
         <>
             <CreateRoomModalComponent
