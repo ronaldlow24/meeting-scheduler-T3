@@ -27,6 +27,7 @@ export const isLoggedIn = async (request : { req: NextApiRequest | IncomingMessa
 
 export const login = async (request : { req: NextApiRequest | IncomingMessage, res: NextApiResponse | ServerResponse }, user: User) => {
   const session = await getSession(request)
+  session.destroy();
   session.user = user;
   await session.save();
 };

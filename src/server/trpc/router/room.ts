@@ -164,9 +164,11 @@ export const roomRouter = router({
                 };
 
             //check if the user is already in the room
-            let attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
+            let attendee = await ctx.prisma.meetingRoomAttendee.findFirst({
                 where: {
-                    id: session.user!.meetingRoomAttendeeId,
+                    meetingRoomId: room.id,
+                    attendeeName: input.attendeeName,
+                    attendeeEmail: input.attendeeEmail,
                 },
             });
 
