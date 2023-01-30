@@ -9,7 +9,9 @@ import type {
     MeetingRoomAttendeeDatetimeRange,
     MeetingRoomAttendeeDatetimeRangeDatetimeMode,
 } from "@prisma/client";
-import { useRouter } from "next/router";
+
+import { useRouter as NextNavigation } from "next/navigation";
+import { useRouter as NextRouter } from 'next/router'
 
 const FreeColor = "#00FF00";
 const BusyColor = "#FF0000";
@@ -81,67 +83,85 @@ const HorizontalTimeLine: React.FC<{
     );
 };
 
+//render a navbar with only a logout button
+const Navbar: React.FC = () => {
+    const nextNavigation = NextNavigation();
+
+    const logoutMutation = trpc.room.logout.useMutation();
+
+    const handleLogout = async () => {
+        const result = await logoutMutation.mutateAsync();
+
+        if (logoutMutation.isError) {
+            toast.error("Failed to logout");
+            return;
+        }
+
+        if (!result.result) {
+            toast.error("Unknown error");
+            return;
+        }
+
+        toast.dismiss("logoutToast");
+        toast.success("Logout successfully");
+        console.log("Logout" , result.result)
+        nextNavigation.push("/");
+    };
+
+    return (
+        <nav className="navbar navbar-expand-lg navbar-light bg-light">
+        <a className="navbar-brand" href="#">Navbar</a>
+        <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span className="navbar-toggler-icon"></span>
+        </button>
+        <div className="collapse navbar-collapse" id="navbarNav">
+          <ul className="navbar-nav ml-auto">
+            <li className="nav-item">
+              <button className="nav-link" onClick={
+                handleLogout
+              }>Logout</button>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    );
+};
+
 const Dashboard: NextPage = () => {
-    const router = useRouter();
+    const nextNavigation = NextNavigation();
 
     const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined, {
         retry: false,
+        initialData: undefined,
+        cacheTime: 0
     });
 
     const confirmMeetingByHostMutation =
         trpc.room.confirmMeetingByHost.useMutation();
     const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
     const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
-    const logoutMutation = trpc.room.logout.useMutation();
-    let isReneredLogoutToast = false;
 
     useEffect(() => {
+        console.log("useEffect from dashboard", getRoomQuery.isFetchedAfterMount && getRoomQuery.isSuccess)
         if (
+            getRoomQuery.isFetchedAfterMount &&
             getRoomQuery.isError &&
             getRoomQuery.error.data?.code === "UNAUTHORIZED"
         ) {
             toast.error("You are not logged in");
-            setTimeout(() => {
-                router.push("/");
-            }, 500);
+            nextNavigation.push("/");
         }
 
         if (
+            getRoomQuery.isFetchedAfterMount &&
             getRoomQuery.isError &&
             getRoomQuery.error.data?.code === "NOT_FOUND"
         ) {
             toast.error("Room not found");
-            setTimeout(() => {
-                router.push("/");
-            }, 500);
+            nextNavigation.push("/");
         }
-
-        if (
-            !getRoomQuery.isFetched ||
-            isReneredLogoutToast ||
-            getRoomQuery.isError
-        )
-            return;
-        isReneredLogoutToast = true;
-        toast(
-            <strong
-                onClick={async () => {
-                    await logoutMutation.mutateAsync();
-                    router.push("/");
-                    toast.dismiss();
-                }}
-                style={{ cursor: "pointer" }}
-            >
-                Click here to logout ⛔
-            </strong>,
-            {
-                closeButton: false,
-                autoClose: false,
-                closeOnClick: false,
-                draggable: false,
-            }
-        );
-    }, [getRoomQuery.isError]);
+     
+    }, [getRoomQuery.isFetchedAfterMount]);
 
     const [startDatetime, setStartDatetime] = useState<Date>(new Date());
     const [endDatetime, setEndDatetime] = useState<Date>(new Date());
@@ -153,6 +173,8 @@ const Dashboard: NextPage = () => {
     const [actualEndDatetime, setActualEndDatetime] = useState<Date>(
         new Date()
     );
+
+   
 
     const handleChangeDatetime = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -188,7 +210,7 @@ const Dashboard: NextPage = () => {
         if (result) {
             toast.success("Meeting confirmed");
             setTimeout(() => {
-                router.reload();
+                nextNavigation.refresh();
             }, 1300);
         }
     };
@@ -199,7 +221,7 @@ const Dashboard: NextPage = () => {
         if (result) {
             toast.success("Meeting cancelled");
             setTimeout(() => {
-                router.push("/");
+                nextNavigation.push("/");
             }, 1300);
         }
     };
@@ -225,6 +247,7 @@ const Dashboard: NextPage = () => {
 
     return (
         <>
+            <Navbar />
             <main>
                 <div className="container">
                     <h1 className="text-center">Meeting Scheduler</h1>

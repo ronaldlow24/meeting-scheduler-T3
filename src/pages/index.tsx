@@ -5,17 +5,15 @@ import { useEffect, useState } from "react";
 import { ToISOStringLocal, ValidateEmail } from "../utils/common";
 import { isLoggedIn, logout } from "../utils/session";
 import { GetServerSideProps, NextPage } from "next";
-import { useRouter } from "next/router";
+import { useRouter as NextNavigation } from "next/navigation";
+import { useRouter as NextRouter } from 'next/router'
+
 import { parse } from "querystring";
 
 const modalCustomStyles = {
     content: {
-        top: "50%",
-        left: "50%",
-        right: "auto",
-        bottom: "auto",
-        marginRight: "-50%",
-        transform: "translate(-50%, -50%)",
+        border: "5px solid #ccc",
+        overflow: "auto",
     },
 };
 
@@ -40,7 +38,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
     closeModal,
 }) => {
     const createRoomMutation = trpc.room.createRoom.useMutation();
-    const router = useRouter();
+    const router = NextNavigation();
 
     const [roomTitle, setRoomTitle] = useState<string>("");
     const [hostName, setHostName] = useState<string>("");
@@ -349,7 +347,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
     );
     const [attendeeName, setAttendeeName] = useState<string>("");
     const [attendeeEmail, setAttendeeEmail] = useState<string>("");
-    const router = useRouter();
+    const router = NextRouter();
 
     const handleSubmit = async () => {
         //validate all input
@@ -389,15 +387,12 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
             return;
         }
 
-        toast.success("Joined room successfully, will redirect to room page");
-
-        setTimeout(() => {
-            router.push("/dashboard");
-        }, 1300);
+        toast.success("Joined room successfully");
+        router.push("/dashboard");
     };
 
     const clearAndCloseModal = () => {
-        setSecretKey("");
+        setSecretKey(roomSecretKey ? roomSecretKey : "");
         setAttendeeName("");
         setAttendeeEmail("");
         closeModal();
@@ -502,43 +497,58 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalComponentType> = ({
 };
 
 const Home: NextPage = () => {
-    const router = useRouter();
-    const { roomSecretKey }  = parse(router.asPath.substr(router.asPath.indexOf("?") + 1));
+    const router = NextRouter();
+    const { roomSecretKey } = parse(
+        router.asPath.substr(router.asPath.indexOf("?") + 1)
+    );
 
     const logoutMutation = trpc.room.logout.useMutation();
 
+    const [modalOpeningState, setModalOpeningState] =
+        useState<ModalOpeningState>("close");
+
     const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined, {
         retry: false,
+        initialData: undefined,
+        cacheTime: 0
     });
 
-    if (!roomSecretKey && getRoomQuery.isSuccess) {
-        router.push("/dashboard");
-    }
+    useEffect(() => {
+        console.log("useEffect from index", getRoomQuery.isFetchedAfterMount && getRoomQuery.isSuccess)
 
-    if (
-        roomSecretKey &&
-        getRoomQuery.isSuccess &&
-        getRoomQuery.data.room.secretKey == roomSecretKey
-    ) {
-        router.push("/dashboard");
-    }
-
-    if (
-        roomSecretKey &&
-        getRoomQuery.isSuccess &&
-        getRoomQuery.data.room.secretKey != roomSecretKey
-    ) {
-        logoutMutation.mutate();
-    }
+        if (!roomSecretKey && getRoomQuery.isFetchedAfterMount && getRoomQuery.isSuccess) {
+            router.push("/dashboard");
+            return;
+        }
+    
+        if (
+            roomSecretKey &&
+            getRoomQuery.isFetchedAfterMount &&
+            getRoomQuery.isSuccess &&
+            getRoomQuery.data.room.secretKey == roomSecretKey
+        ) {
+            router.push("/dashboard");
+            return;
+        }
+    
+        if (
+            roomSecretKey &&
+            getRoomQuery.isFetchedAfterMount &&
+            getRoomQuery.isSuccess &&
+            getRoomQuery.data.room.secretKey != roomSecretKey
+        ) {
+            logoutMutation.mutate();
+        }
+    
+        if (roomSecretKey && getRoomQuery.isFetchedAfterMount && getRoomQuery.isError) {
+            setModalOpeningState("openingJoinRoomModal");
+        }
+    }, [getRoomQuery.isFetchedAfterMount]);
 
     const closeModal = () => {
         setModalOpeningState("close");
     };
 
-    const [modalOpeningState, setModalOpeningState] =
-        useState<ModalOpeningState>(
-            roomSecretKey ? "openingJoinRoomModal" : "close"
-        );
     return (
         <>
             <CreateRoomModalComponent
