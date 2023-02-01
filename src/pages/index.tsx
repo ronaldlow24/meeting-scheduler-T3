@@ -154,6 +154,7 @@ const CreateRoomModalComponent: React.FC<BasedModalComponentType> = ({
         toast(
             <strong
                 onClick={() => {
+                    toast.dismiss()
                     router.push("/dashboard");
                 }}
                 style={{ cursor: "pointer" }}
@@ -538,11 +539,13 @@ const Home: NextPage = () => {
             getRoomQuery.data.room.secretKey != roomSecretKey
         ) {
             logoutMutation.mutate();
+            setModalOpeningState("openingJoinRoomModal");
         }
     
         if (roomSecretKey && getRoomQuery.isFetchedAfterMount && getRoomQuery.isError) {
             setModalOpeningState("openingJoinRoomModal");
         }
+        
     }, [getRoomQuery.isFetchedAfterMount]);
 
     const closeModal = () => {
