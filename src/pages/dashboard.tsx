@@ -9,9 +9,9 @@ import type {
     MeetingRoomAttendeeDatetimeRange,
     MeetingRoomAttendeeDatetimeRangeDatetimeMode,
 } from "@prisma/client";
+import { ToISOStringLocal, ValidateEmail } from "../utils/common";
 
 import { useRouter as NextNavigation } from "next/navigation";
-import { useRouter as NextRouter } from 'next/router'
 
 const FreeColor = "#00FF00";
 const BusyColor = "#FF0000";
@@ -104,26 +104,21 @@ const Navbar: React.FC = () => {
 
         toast.dismiss("logoutToast");
         toast.success("Logout successfully");
-        console.log("Logout" , result.result)
         nextNavigation.push("/");
     };
 
     return (
-        <nav className="navbar navbar-expand-lg navbar-light bg-light">
-        <a className="navbar-brand" href="#">Navbar</a>
-        <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ml-auto">
-            <li className="nav-item">
-              <button className="nav-link" onClick={
-                handleLogout
-              }>Logout</button>
-            </li>
-          </ul>
-        </div>
-      </nav>
+        <nav className="navbar bg-light">
+            <div className="container-fluid">
+                <a className="navbar-brand">Meeting Scheduler</a>
+                <button
+                    className="btn btn-outline-danger"
+                    onClick={handleLogout}
+                >
+                    Logout
+                </button>
+            </div>
+        </nav>
     );
 };
 
@@ -133,7 +128,7 @@ const Dashboard: NextPage = () => {
     const getRoomQuery = trpc.room.getRoomBySession.useQuery(undefined, {
         retry: false,
         initialData: undefined,
-        cacheTime: 0
+        cacheTime: 0,
     });
 
     const confirmMeetingByHostMutation =
@@ -142,7 +137,10 @@ const Dashboard: NextPage = () => {
     const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
 
     useEffect(() => {
-        console.log("useEffect from dashboard", getRoomQuery.isFetchedAfterMount && getRoomQuery.isSuccess)
+        console.log(
+            "useEffect from dashboard",
+            getRoomQuery.isFetchedAfterMount && getRoomQuery.isSuccess
+        );
         if (
             getRoomQuery.isFetchedAfterMount &&
             getRoomQuery.isError &&
@@ -160,7 +158,6 @@ const Dashboard: NextPage = () => {
             toast.error("Room not found");
             nextNavigation.push("/");
         }
-     
     }, [getRoomQuery.isFetchedAfterMount]);
 
     const [startDatetime, setStartDatetime] = useState<Date>(new Date());
@@ -173,28 +170,6 @@ const Dashboard: NextPage = () => {
     const [actualEndDatetime, setActualEndDatetime] = useState<Date>(
         new Date()
     );
-
-   
-
-    const handleChangeDatetime = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        const inputtedDatetime = new Date(value);
-        if (name === "startDatetime") {
-            if (inputtedDatetime >= endDatetime) {
-                toast.error("Start datetime must be less than end datetime");
-                return;
-            }
-
-            setStartDatetime(new Date(value));
-        } else if (name === "endDatetime") {
-            if (inputtedDatetime <= startDatetime) {
-                toast.error("End datetime must be greater than start datetime");
-                return;
-            }
-
-            setEndDatetime(new Date(value));
-        }
-    };
 
     const handleConfirmMeeting = async () => {
         if (actualStartDatetime >= actualEndDatetime) {
@@ -250,20 +225,35 @@ const Dashboard: NextPage = () => {
             <Navbar />
             <main>
                 <div className="container">
-                    <h1 className="text-center">Meeting Scheduler</h1>
-                    <h3 className="text-center">
-                        Title : {getRoomQuery.data?.room.title}
-                    </h3>
-                    <h3 className="text-center">
-                        Available Start Time :{" "}
-                        {getRoomQuery.data?.room.availableStartDateTimeUTC.toString()}{" "}
-                        ({getRoomQuery.data?.room.timeZone})
-                    </h3>
-                    <h3 className="text-center">
-                        Available End Time :{" "}
-                        {getRoomQuery.data?.room.availableEndDateTimeUTC.toString()}{" "}
-                        ({getRoomQuery.data?.room.timeZone})
-                    </h3>
+                    <br></br>
+                    <div className="row">
+                        <div className="col-4 text-center border border-2 p-1">
+                            <strong>Title</strong>
+                        </div>
+                        <div className="col-8 text-center border border-2 p-1">
+                            {getRoomQuery.data?.room.title}
+                        </div>
+                    </div>
+
+                    <div className="row">
+                        <div className="col-4 text-center border border-2 p-1">
+                            <strong>Available Start Time</strong>
+                        </div>
+                        <div className="col-8 text-center border border-2 p-1">
+                            {getRoomQuery.data?.room.availableStartDateTimeUTC.toString()}{" "}
+                            ({getRoomQuery.data?.room.timeZone})
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col-4 text-center border border-2 p-1">
+                            <strong>Available End Time</strong>
+                        </div>
+                        <div className="col-8 text-center border border-2 p-1">
+                            {getRoomQuery.data?.room.availableEndDateTimeUTC.toString()}{" "}
+                            ({getRoomQuery.data?.room.timeZone})
+                        </div>
+                    </div>
+                    <br></br>
 
                     {getRoomQuery.data?.room.actualEndTimeUTC && (
                         <>
@@ -292,54 +282,64 @@ const Dashboard: NextPage = () => {
                             <div className="row">
                                 <div className="col-12 text-center">
                                     <h2>Confirm Meeting</h2>
-                                    <div className="row">
-                                        <div className="col-6">
-                                            <div className="form-group">
-                                                <label>Start Datetime</label>
-                                                <input
-                                                    type="datetime-local"
-                                                    className="form-control"
-                                                    onChange={(e) => {
-                                                        setActualStartDatetime(
-                                                            new Date(
-                                                                e.target.value
-                                                            )
-                                                        );
-                                                    }}
-                                                />
+                                    <div className="form-group">
+                                        <label>Start Datetime</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="form-control"
+                                            disabled={
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
+                                            }
+                                            value={ToISOStringLocal(
+                                                actualStartDatetime
+                                            ).slice(0, 16)}
+                                            onChange={(e) => {
+                                                setActualStartDatetime(
+                                                    new Date(e.target.value)
+                                                );
+                                            }}
+                                        />
 
-                                                <label>End Datetime</label>
-                                                <input
-                                                    type="datetime-local"
-                                                    className="form-control"
-                                                    onChange={(e) => {
-                                                        setActualEndDatetime(
-                                                            new Date(
-                                                                e.target.value
-                                                            )
-                                                        );
-                                                    }}
-                                                />
+                                        <label>End Datetime</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="form-control"
+                                            disabled={
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
+                                            }
+                                            value={ToISOStringLocal(
+                                                actualEndDatetime
+                                            ).slice(0, 16)}
+                                            onChange={(e) => {
+                                                setActualEndDatetime(
+                                                    new Date(e.target.value)
+                                                );
+                                            }}
+                                        />
 
-                                                <button
-                                                    className="btn btn-primary mt-3"
-                                                    onClick={
-                                                        handleConfirmMeeting
-                                                    }
-                                                >
-                                                    Confirm Meeting
-                                                </button>
+                                        <button
+                                            className="btn btn-primary mt-3"
+                                            disabled={
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
+                                            }
+                                            onClick={handleConfirmMeeting}
+                                        >
+                                            Confirm Meeting
+                                        </button>
 
-                                                <button
-                                                    className="btn btn-danger mt-3 ml-3"
-                                                    onClick={
-                                                        handleCancelMeeting
-                                                    }
-                                                >
-                                                    Cancel Meeting
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <button
+                                            className="btn btn-danger mt-3 ml-3"
+                                            disabled={
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
+                                            }
+                                            onClick={handleCancelMeeting}
+                                        >
+                                            Cancel Meeting
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -352,78 +352,80 @@ const Dashboard: NextPage = () => {
                             <>
                                 <div className="row">
                                     <div className="col-12 text-center">
-                                        <h2>Submit Meeting Time</h2>
-                                        <div className="row">
-                                            <div className="col-6">
-                                                <div className="form-group">
-                                                    <label>
-                                                        Start Datetime
-                                                    </label>
-                                                    <input
-                                                        type="datetime-local"
-                                                        className="form-control"
-                                                        name="startDatetime"
-                                                        onChange={
-                                                            handleChangeDatetime
-                                                        }
-                                                    />
+                                        <div className="form-group">
+                                            <label>Start Datetime</label>
+                                            <input
+                                                type="datetime-local"
+                                                className="form-control"
+                                                name="startDatetime"
+                                                disabled={
+                                                    submitMeetingTimeMutation.isLoading
+                                                }
+                                                value={ToISOStringLocal(
+                                                    startDatetime
+                                                ).slice(0, 16)}
+                                                onChange={(e) => {
+                                                    setStartDatetime(
+                                                        new Date(e.target.value)
+                                                    );
+                                                }}                                            />
 
-                                                    <label>End Datetime</label>
-                                                    <input
-                                                        type="datetime-local"
-                                                        className="form-control"
-                                                        name="endDatetime"
-                                                        onChange={
-                                                            handleChangeDatetime
-                                                        }
-                                                    />
+                                            <br></br>
+                                            <label>End Datetime</label>
+                                            <input
+                                                type="datetime-local"
+                                                className="form-control"
+                                                name="endDatetime"
+                                                disabled={
+                                                    submitMeetingTimeMutation.isLoading
+                                                }
+                                                value={ToISOStringLocal(
+                                                    endDatetime
+                                                ).slice(0, 16)}
+                                                onChange={(e) => {
+                                                    setEndDatetime(
+                                                        new Date(e.target.value)
+                                                    );
+                                                }}                                            />
+                                            <br></br>
 
-                                                    <label>Datetime Mode</label>
-                                                    <select
-                                                        className="form-control"
-                                                        name="datetimeMode"
-                                                        onChange={(e) => {
-                                                            if (
-                                                                e.target
-                                                                    .value ===
-                                                                "FREE"
-                                                            ) {
-                                                                setDatetimeMode(
-                                                                    e.target
-                                                                        .value
-                                                                );
-                                                            }
+                                            <label>Mode</label>
+                                            <select
+                                                className="form-control"
+                                                name="datetimeMode"
+                                                disabled={
+                                                    submitMeetingTimeMutation.isLoading
+                                                }
+                                                onChange={(e) => {
+                                                    if (
+                                                        e.target.value ===
+                                                            "FREE" ||
+                                                        e.target.value ===
+                                                            "BUSY"
+                                                    ) {
+                                                        setDatetimeMode(
+                                                            e.target.value
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                <option value="FREE">
+                                                    Available
+                                                </option>
+                                                <option value="BUSY">
+                                                    Not Available
+                                                </option>
+                                            </select>
+                                            <br></br>
 
-                                                            if (
-                                                                e.target
-                                                                    .value ===
-                                                                "BUSY"
-                                                            ) {
-                                                                setDatetimeMode(
-                                                                    e.target
-                                                                        .value
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <option value="FREE">
-                                                            Available
-                                                        </option>
-                                                        <option value="BUSY">
-                                                            Not Available
-                                                        </option>
-                                                    </select>
-
-                                                    <button
-                                                        className="btn btn-primary mt-3"
-                                                        onClick={
-                                                            handleSubmitMeetingTime
-                                                        }
-                                                    >
-                                                        Submit Meeting Time
-                                                    </button>
-                                                </div>
-                                            </div>
+                                            <button
+                                                className="btn btn-primary mt-3"
+                                                onClick={
+                                                    handleSubmitMeetingTime
+                                                }
+                                            >
+                                                Submit Meeting Time
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
