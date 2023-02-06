@@ -16,6 +16,8 @@ export const roomRouter = router({
 
         const user = session.user!;
 
+        console.log(user)
+
         const room = await ctx.prisma.meetingRoom.findUnique({
             where: {
                 id: user.meetingRoomId,
@@ -124,6 +126,7 @@ export const roomRouter = router({
                 meetingRoomId: creationResult.id,
                 attendeeName: host.attendeeName,
                 attendeeEmail: host.attendeeEmail,
+                meetingRoomAttendeeId: host.id,
             } as User;
 
             await login(ctx.request, user);
@@ -162,8 +165,7 @@ export const roomRouter = router({
             //check if the user is already in the room
             let attendee = attendees.find(
                 (item) =>
-                    item.attendeeName === input.attendeeName &&
-                    item.attendeeEmail === input.attendeeEmail
+                    item.attendeeName === input.attendeeName
             );
 
             if (!attendee) {
@@ -184,11 +186,22 @@ export const roomRouter = router({
                     },
                 });
             }
+            else {
+                //update attendee email
+                await ctx.prisma.meetingRoomAttendee.update({
+                    where: {
+                        id: attendee.id,
+                    },
+                    data: {
+                        attendeeEmail: input.attendeeEmail,
+                    },
+                });
+            }
 
             const user = {
                 meetingRoomId: room.id,
                 attendeeName: attendee.attendeeName,
-                attendeeEmail: attendee.attendeeEmail,
+                attendeeEmail: input.attendeeEmail,
                 meetingRoomAttendeeId: attendee.id,
             } as User;
 
