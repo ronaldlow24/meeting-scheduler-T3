@@ -14,7 +14,7 @@ import { ToISOStringLocal, ValidateEmail } from "../utils/common";
 import { useRouter as NextNavigation } from "next/navigation";
 
 const FreeColor = "#00FF00";
-const BusyColor = "#FF0000";
+const BusyColor = "#FFC0CB";
 
 const HorizontalTimeLine: React.FC<{
     key: string;
@@ -23,61 +23,47 @@ const HorizontalTimeLine: React.FC<{
     attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
 }> = ({ room, attendee, attendeeDatetimeRange }) => {
     return (
-        <div className="row">
-            <div className="col-2">
-                <p className="text-center">{attendee.attendeeName}</p>
+        <div className="row border">
+            <div className="col-2 text-center">
+                <strong>{attendee.attendeeName}</strong>
             </div>
             <div className="col-10">
-                <div className="row">
-                    {attendeeDatetimeRange
-                        .sort(function (a, b) {
-                            return (
-                                b.startDateTimeUTC.getTime() -
-                                a.startDateTimeUTC.getTime()
-                            );
-                        })
-                        .map((attendeeDatetimeRange) => {
-                            return (
+                {attendeeDatetimeRange.length == 0 && (
+                    <>
+                        <i style={{ color: "red" }}>
+                            No time slot allocated yet
+                        </i>
+                        ⌛
+                    </>
+                )}
+
+                {attendeeDatetimeRange
+                    .sort(function (a, b) {
+                        return (
+                            b.startDateTimeUTC.getTime() -
+                            a.startDateTimeUTC.getTime()
+                        );
+                    })
+                    .map((attendeeDatetimeRange) => {
+                        return (
+                            <div className="row border"
+                            style={{backgroundColor: attendeeDatetimeRange.datetimeMode === "FREE" ? FreeColor : BusyColor}}
+                            key={attendeeDatetimeRange.id}>
                                 <div
-                                    className="col-2"
-                                    key={attendeeDatetimeRange.id}
+                                    className="col-6"
                                 >
-                                    <div
-                                        style={{
-                                            width: "100%",
-                                            height: "50%",
-                                            borderBottom: `1px solid ${
-                                                attendeeDatetimeRange.datetimeMode ==
-                                                    "BUSY" && BusyColor
-                                            } ${
-                                                attendeeDatetimeRange.datetimeMode ==
-                                                    "FREE" && FreeColor
-                                            }`,
-                                        }}
-                                    >
-                                        {attendeeDatetimeRange.startDateTimeUTC.toString()}{" "}
-                                        ({room.timeZone})
-                                    </div>
-                                    <div
-                                        style={{
-                                            width: "100%",
-                                            height: "50%",
-                                            borderTop: `1px solid ${
-                                                attendeeDatetimeRange.datetimeMode ==
-                                                    "BUSY" && BusyColor
-                                            } ${
-                                                attendeeDatetimeRange.datetimeMode ==
-                                                    "FREE" && FreeColor
-                                            }`,
-                                        }}
-                                    >
-                                        {attendeeDatetimeRange.endDateTimeUTC.toString()}{" "}
-                                        ({room.timeZone})
-                                    </div>
+                                    {attendeeDatetimeRange.startDateTimeUTC.toString()}{" "}
+                                    ({room.timeZone})
                                 </div>
-                            );
-                        })}
-                </div>
+                                <div
+                                    className="col-6"
+                                >
+                                    {attendeeDatetimeRange.endDateTimeUTC.toString()}{" "}
+                                    ({room.timeZone})
+                                </div>
+                            </div>
+                        );
+                    })}
             </div>
         </div>
     );
@@ -160,18 +146,19 @@ const Dashboard: NextPage = () => {
         }
     }, [getRoomQuery.isFetchedAfterMount]);
 
-    const [startDatetime, setStartDatetime] = useState<Date>(new Date());
-    const [endDatetime, setEndDatetime] = useState<Date>(new Date());
+    const [startDatetime, setStartDatetime] = useState<Date>();
+    const [endDatetime, setEndDatetime] = useState<Date>();
     const [datetimeMode, setDatetimeMode] =
         useState<MeetingRoomAttendeeDatetimeRangeDatetimeMode>("BUSY");
-    const [actualStartDatetime, setActualStartDatetime] = useState<Date>(
-        new Date()
-    );
-    const [actualEndDatetime, setActualEndDatetime] = useState<Date>(
-        new Date()
-    );
+    const [actualStartDatetime, setActualStartDatetime] = useState<Date>();
+    const [actualEndDatetime, setActualEndDatetime] = useState<Date>();
 
     const handleConfirmMeeting = async () => {
+        if (!actualStartDatetime || !actualEndDatetime) {
+            toast.error("Start datetime and end datetime must be set");
+            return;
+        }
+
         if (actualStartDatetime >= actualEndDatetime) {
             toast.error("Start datetime must be less than end datetime");
             return;
@@ -202,13 +189,18 @@ const Dashboard: NextPage = () => {
     };
 
     const handleSubmitMeetingTime = async () => {
+        if (!startDatetime || !endDatetime) {
+            toast.error("Start datetime and end datetime must be set");
+            return;
+        }
+
         const result = await submitMeetingTimeMutation.mutateAsync({
             startDateTime: startDatetime,
             endDateTime: endDatetime,
             datetimeMode: datetimeMode,
         });
 
-        if (result) {
+        if (result.result) {
             toast.success("Meeting time submitted");
 
             getRoomQuery.refetch();
@@ -217,6 +209,8 @@ const Dashboard: NextPage = () => {
                 toast.error(getRoomQuery.error.message);
                 return;
             }
+        } else {
+            toast.error(result.error);
         }
     };
 
@@ -226,6 +220,9 @@ const Dashboard: NextPage = () => {
             <main>
                 <div className="container">
                     <br></br>
+                    <h3>Meeting Details</h3>
+                    <br></br>
+
                     <div className="row">
                         <div className="col-4 text-center border border-2 p-1">
                             <strong>Title</strong>
@@ -254,6 +251,8 @@ const Dashboard: NextPage = () => {
                         </div>
                     </div>
                     <br></br>
+                    <br></br>
+                    <h3>Submit Timeslot ({getRoomQuery.data?.attendee.find(x => x.id == getRoomQuery.data.currentUserId)?.attendeeName})</h3>
 
                     {getRoomQuery.data?.room.actualEndTimeUTC && (
                         <>
@@ -291,9 +290,9 @@ const Dashboard: NextPage = () => {
                                                 confirmMeetingByHostMutation.isLoading ||
                                                 cancelMeetingByHostMutation.isLoading
                                             }
-                                            value={ToISOStringLocal(
-                                                actualStartDatetime
-                                            ).slice(0, 16)}
+                                            // value={ToISOStringLocal(
+                                            //     actualStartDatetime
+                                            // ).slice(0, 16)}
                                             onChange={(e) => {
                                                 setActualStartDatetime(
                                                     new Date(e.target.value)
@@ -309,9 +308,9 @@ const Dashboard: NextPage = () => {
                                                 confirmMeetingByHostMutation.isLoading ||
                                                 cancelMeetingByHostMutation.isLoading
                                             }
-                                            value={ToISOStringLocal(
-                                                actualEndDatetime
-                                            ).slice(0, 16)}
+                                            // value={ToISOStringLocal(
+                                            //     actualEndDatetime
+                                            // ).slice(0, 16)}
                                             onChange={(e) => {
                                                 setActualEndDatetime(
                                                     new Date(e.target.value)
@@ -320,7 +319,7 @@ const Dashboard: NextPage = () => {
                                         />
 
                                         <button
-                                            className="btn btn-primary mt-3"
+                                            className="btn btn-primary mt-3 float-end"
                                             disabled={
                                                 confirmMeetingByHostMutation.isLoading ||
                                                 cancelMeetingByHostMutation.isLoading
@@ -331,7 +330,7 @@ const Dashboard: NextPage = () => {
                                         </button>
 
                                         <button
-                                            className="btn btn-danger mt-3 ml-3"
+                                            className="btn btn-danger mt-3 ml-3 float-end"
                                             disabled={
                                                 confirmMeetingByHostMutation.isLoading ||
                                                 cancelMeetingByHostMutation.isLoading
@@ -361,14 +360,15 @@ const Dashboard: NextPage = () => {
                                                 disabled={
                                                     submitMeetingTimeMutation.isLoading
                                                 }
-                                                value={ToISOStringLocal(
-                                                    startDatetime
-                                                ).slice(0, 16)}
+                                                // value={ToISOStringLocal(
+                                                //     startDatetime
+                                                // ).slice(0, 16)}
                                                 onChange={(e) => {
                                                     setStartDatetime(
                                                         new Date(e.target.value)
                                                     );
-                                                }}                                            />
+                                                }}
+                                            />
 
                                             <br></br>
                                             <label>End Datetime</label>
@@ -379,14 +379,15 @@ const Dashboard: NextPage = () => {
                                                 disabled={
                                                     submitMeetingTimeMutation.isLoading
                                                 }
-                                                value={ToISOStringLocal(
-                                                    endDatetime
-                                                ).slice(0, 16)}
+                                                // value={ToISOStringLocal(
+                                                //     endDatetime
+                                                // ).slice(0, 16)}
                                                 onChange={(e) => {
                                                     setEndDatetime(
                                                         new Date(e.target.value)
                                                     );
-                                                }}                                            />
+                                                }}
+                                            />
                                             <br></br>
 
                                             <label>Mode</label>
@@ -419,7 +420,7 @@ const Dashboard: NextPage = () => {
                                             <br></br>
 
                                             <button
-                                                className="btn btn-primary mt-3"
+                                                className="btn btn-primary mt-3 float-end"
                                                 onClick={
                                                     handleSubmitMeetingTime
                                                 }
@@ -432,6 +433,8 @@ const Dashboard: NextPage = () => {
                             </>
                         )}
 
+                        <h3>Timeslot Information</h3>
+
                     {getRoomQuery.data?.attendee.map((attendee) => {
                         const attendeeDatetimeRange =
                             getRoomQuery.data?.attendeeDatetimeRange.filter(
@@ -439,14 +442,21 @@ const Dashboard: NextPage = () => {
                             );
 
                         return (
-                            <HorizontalTimeLine
-                                key={attendee.id}
-                                room={getRoomQuery.data?.room}
-                                attendee={attendee}
-                                attendeeDatetimeRange={attendeeDatetimeRange}
-                            />
+                            <>
+                                <br></br>
+                                <HorizontalTimeLine
+                                    key={attendee.id}
+                                    room={getRoomQuery.data?.room}
+                                    attendee={attendee}
+                                    attendeeDatetimeRange={
+                                        attendeeDatetimeRange
+                                    }
+                                />
+                            </>
                         );
                     })}
+                    <br></br>
+                    <br></br>
                 </div>
             </main>
         </>

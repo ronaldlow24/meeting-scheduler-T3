@@ -312,6 +312,14 @@ export const roomRouter = router({
                 });
             }
 
+            if(input.startDateTime > input.endDateTime) {
+                return {
+                    result: false,
+                    data: null,
+                    error: "Start time must be before end time",
+                }
+            }
+
             const existingAttendeeDatetimeRange =
                 await ctx.prisma.meetingRoomAttendeeDatetimeRange.findMany({
                     where: {
@@ -332,21 +340,22 @@ export const roomRouter = router({
                 });
 
             if (existingAttendeeDatetimeRange.length > 0) {
-                throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message: "You have overlapping time slots",
-                });
+                return {
+                    result: false,
+                    data: null,
+                    error: "You have overlapping time slots",
+                }
             }
 
             if (
                 startDateTimeUTC < room.availableStartDateTimeUTC ||
                 endDateTimeUTC > room.availableEndDateTimeUTC
             ) {
-                throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message:
-                        "You have time slots outside of the available time slots",
-                });
+                return {
+                    result: false,
+                    data: null,
+                    error: "You have time slots outside of the available time slots",
+                }
             }
 
             const s = await ctx.prisma.meetingRoomAttendeeDatetimeRange.create({
@@ -358,7 +367,10 @@ export const roomRouter = router({
                 },
             });
 
-            return s;
+            return {
+                result: true,
+                data: s,
+            };
         }),
     confirmMeetingByHost: protectedProcedure
         .input(
@@ -402,15 +414,23 @@ export const roomRouter = router({
                 });
             }
 
+            if(input.startDatetime > input.endDatetime) {
+                return{
+                    result: false,
+                    data: null,
+                    error: "Start time must be before end time",
+                }
+            }
+
             if (
                 startDateTimeUTC < room.availableStartDateTimeUTC ||
                 endDateTimeUTC > room.availableEndDateTimeUTC
             ) {
-                throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message:
-                        "You cannot set the meeting time outside of the available time slots",
-                });
+                return{
+                    result: false,
+                    data: null,
+                    error: "You have time slots outside of the available time slots",
+                }
             }
 
             //update the room
