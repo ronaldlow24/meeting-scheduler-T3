@@ -156,6 +156,17 @@ export const roomRouter = router({
                 };
             }
 
+            const now = new Date();
+            now.setUTCHours(now.getUTCHours() - 2);
+            
+            if(room.actualStartTimeUTC !== null && room.actualEndTimeUTC !== null && now > room.actualEndTimeUTC) {
+                return {
+                    result: false,
+                    data: null,
+                    error: "Room has already started long time ago, you cannot join anymore",
+                };
+            }
+
             const attendees = await ctx.prisma.meetingRoomAttendee.findMany({
                 where: {
                     meetingRoomId: room.id,
