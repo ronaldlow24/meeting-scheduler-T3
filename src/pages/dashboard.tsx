@@ -20,12 +20,32 @@ const HorizontalTimeLine: React.FC<{
     room: MeetingRoom;
     attendee: MeetingRoomAttendee;
     attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
-}> = ({ room, attendee, attendeeDatetimeRange }) => {
+    isCurrentAttendee: boolean;
+}> = ({ room, attendee, attendeeDatetimeRange, isCurrentAttendee }) => {
+
+    const deleteDatetimeRangeMutation = trpc.room.deleteMeetingTime.useMutation();
+
+    const handleDeleteDatetimeRange = async (meetingTimeId: string) => {
+        const result = await deleteDatetimeRangeMutation.mutateAsync({ id: meetingTimeId });
+
+        if (deleteDatetimeRangeMutation.isError) {
+            toast.error("Failed to delete meeting time");
+            return;
+        }
+
+        if (!result.result) {
+            toast.error("Unknown error");
+            return;
+        }
+
+        toast.success("Meeting time deleted successfully");
+    };
+
     return (
         <div className="row border">
             <div className="col-2 text-center">
                 <strong>
-                    {attendee.attendeeName} {attendee.isHost && "(HOST)"}
+                    {attendee.attendeeName} {attendee.isHost && "(HOST)"} {isCurrentAttendee && "(YOU)"}
                 </strong>
             </div>
             <div className="col-10">
@@ -57,13 +77,16 @@ const HorizontalTimeLine: React.FC<{
                                             : BusyColor,
                                 }}
                             >
-                                <div className="col-6">
+                                <div className="col-5">
                                     {attendeeDatetimeRange.startDateTimeUTC.toString()}{" "}
                                     ({room.timeZone})
                                 </div>
-                                <div className="col-6">
+                                <div className="col-5">
                                     {attendeeDatetimeRange.endDateTimeUTC.toString()}{" "}
                                     ({room.timeZone})
+                                </div>
+                                <div className="col-2 d-flex justify-content-center align-items-center">
+                                    {isCurrentAttendee && <button type="button" onClick={() => handleDeleteDatetimeRange(attendeeDatetimeRange.id)}>🗑️</button>}
                                 </div>
                             </div>
                         );
@@ -154,7 +177,7 @@ const Dashboard: NextPage = () => {
     const [startDatetime, setStartDatetime] = useState<Date>();
     const [endDatetime, setEndDatetime] = useState<Date>();
     const [datetimeMode, setDatetimeMode] =
-        useState<MeetingRoomAttendeeDatetimeRangeDatetimeMode>("BUSY");
+        useState<MeetingRoomAttendeeDatetimeRangeDatetimeMode>("FREE");
     const [actualStartDatetime, setActualStartDatetime] = useState<Date>();
     const [actualEndDatetime, setActualEndDatetime] = useState<Date>();
 
@@ -464,6 +487,8 @@ const Dashboard: NextPage = () => {
                                 (x) => x.meetingRoomAttendeeId === attendee.id
                             );
 
+                        const isCurrentAttendee = attendee.id === getRoomQuery.data.currentUserId;
+
                         return (
                             <div key={attendee.id}>
                                 <br></br>
@@ -473,6 +498,7 @@ const Dashboard: NextPage = () => {
                                     attendeeDatetimeRange={
                                         attendeeDatetimeRange
                                     }
+                                    isCurrentAttendee={isCurrentAttendee}
                                 />
                             </div>
                         );
