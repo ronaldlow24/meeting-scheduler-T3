@@ -24,7 +24,9 @@ const HorizontalTimeLine: React.FC<{
     return (
         <div className="row border">
             <div className="col-2 text-center">
-                <strong>{attendee.attendeeName} {attendee.isHost && "(HOST)"}</strong>
+                <strong>
+                    {attendee.attendeeName} {attendee.isHost && "(HOST)"}
+                </strong>
             </div>
             <div className="col-10">
                 {attendeeDatetimeRange.length == 0 && (
@@ -290,6 +292,7 @@ const Dashboard: NextPage = () => {
                                                 type="datetime-local"
                                                 className="form-control"
                                                 disabled={
+                                                    submitMeetingTimeMutation.isLoading ||
                                                     confirmMeetingByHostMutation.isLoading ||
                                                     cancelMeetingByHostMutation.isLoading
                                                 }
@@ -308,6 +311,7 @@ const Dashboard: NextPage = () => {
                                                 type="datetime-local"
                                                 className="form-control"
                                                 disabled={
+                                                    submitMeetingTimeMutation.isLoading ||
                                                     confirmMeetingByHostMutation.isLoading ||
                                                     cancelMeetingByHostMutation.isLoading
                                                 }
@@ -324,6 +328,7 @@ const Dashboard: NextPage = () => {
                                             <button
                                                 className="btn btn-primary m-3 float-end"
                                                 disabled={
+                                                    submitMeetingTimeMutation.isLoading ||
                                                     confirmMeetingByHostMutation.isLoading ||
                                                     cancelMeetingByHostMutation.isLoading
                                                 }
@@ -335,6 +340,7 @@ const Dashboard: NextPage = () => {
                                             <button
                                                 className="btn btn-danger m-3 float-end"
                                                 disabled={
+                                                    submitMeetingTimeMutation.isLoading ||
                                                     confirmMeetingByHostMutation.isLoading ||
                                                     cancelMeetingByHostMutation.isLoading
                                                 }
@@ -369,7 +375,9 @@ const Dashboard: NextPage = () => {
                                             className="form-control"
                                             name="startDatetime"
                                             disabled={
-                                                submitMeetingTimeMutation.isLoading
+                                                submitMeetingTimeMutation.isLoading ||
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
                                             }
                                             // value={ToISOStringLocal(
                                             //     startDatetime
@@ -388,7 +396,9 @@ const Dashboard: NextPage = () => {
                                             className="form-control"
                                             name="endDatetime"
                                             disabled={
-                                                submitMeetingTimeMutation.isLoading
+                                                submitMeetingTimeMutation.isLoading ||
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
                                             }
                                             // value={ToISOStringLocal(
                                             //     endDatetime
@@ -406,7 +416,9 @@ const Dashboard: NextPage = () => {
                                             className="form-control"
                                             name="datetimeMode"
                                             disabled={
-                                                submitMeetingTimeMutation.isLoading
+                                                submitMeetingTimeMutation.isLoading ||
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
                                             }
                                             onChange={(e) => {
                                                 if (
@@ -429,6 +441,11 @@ const Dashboard: NextPage = () => {
 
                                         <button
                                             className="btn btn-primary m-3 float-end"
+                                            disabled={
+                                                submitMeetingTimeMutation.isLoading ||
+                                                confirmMeetingByHostMutation.isLoading ||
+                                                cancelMeetingByHostMutation.isLoading
+                                            }
                                             onClick={handleSubmitMeetingTime}
                                         >
                                             Submit Meeting Time

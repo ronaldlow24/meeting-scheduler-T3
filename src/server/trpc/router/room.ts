@@ -239,6 +239,8 @@ export const roomRouter = router({
 
         const attendeeIds = attendee.map((item) => item.id);
 
+        await logout(ctx.request);
+
         await ctx.prisma.meetingRoomAttendeeDatetimeRange.deleteMany({
             where: {
                 meetingRoomAttendeeId: {
@@ -259,8 +261,6 @@ export const roomRouter = router({
             },
         });
 
-        await logout(ctx.request);
-
         return {
             result: true,
         };
@@ -270,13 +270,6 @@ export const roomRouter = router({
 
         return {
             result: true,
-        };
-    }),
-    checkLogin: publicProcedure.query(async ({ ctx }) => {
-        const result = await isLoggedIn(ctx.request);
-
-        return {
-            result: result,
         };
     }),
     submitMeetingTime: protectedProcedure
@@ -383,6 +376,56 @@ export const roomRouter = router({
             return {
                 result: true,
                 data: s,
+            };
+        }),
+    deleteMeetingTime: protectedProcedure
+        .input(
+            z.object({
+                id: z.string(),
+            })
+        )
+        .mutation(async ({ input, ctx }) => {
+            const session = await getSession({
+                req: ctx.request.req,
+                res: ctx.request.res,
+            });
+
+            const user = session.user;
+
+            const attendee = await ctx.prisma.meetingRoomAttendee.findUnique({
+                where: {
+                    id: user!.meetingRoomAttendeeId,
+                },
+            });
+
+            if (!attendee) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                });
+            }
+
+            //check if the room is still open
+            const room = await ctx.prisma.meetingRoom.findFirst({
+                where: {
+                    id: attendee.meetingRoomId,
+                    actualStartTimeUTC: null,
+                },
+            });
+
+            if (!room) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                });
+            }
+
+            await ctx.prisma.meetingRoomAttendeeDatetimeRange.delete({
+                where: {
+                    id: input.id,
+                },
+            });
+
+            return {
+                result: true,
             };
         }),
     confirmMeetingByHost: protectedProcedure
