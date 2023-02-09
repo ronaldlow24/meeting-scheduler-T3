@@ -21,7 +21,8 @@ const HorizontalTimeLine: React.FC<{
     attendee: MeetingRoomAttendee;
     attendeeDatetimeRange: MeetingRoomAttendeeDatetimeRange[];
     isCurrentAttendee: boolean;
-}> = ({ room, attendee, attendeeDatetimeRange, isCurrentAttendee }) => {
+    handleRefetch: () => void;
+}> = ({ room, attendee, attendeeDatetimeRange, isCurrentAttendee, handleRefetch }) => {
 
     const deleteDatetimeRangeMutation = trpc.room.deleteMeetingTime.useMutation();
 
@@ -39,6 +40,8 @@ const HorizontalTimeLine: React.FC<{
         }
 
         toast.success("Meeting time deleted successfully");
+
+        handleRefetch();
     };
 
     return (
@@ -86,7 +89,7 @@ const HorizontalTimeLine: React.FC<{
                                     ({room.timeZone})
                                 </div>
                                 <div className="col-2 d-flex justify-content-center align-items-center">
-                                    {isCurrentAttendee && <button type="button" onClick={() => handleDeleteDatetimeRange(attendeeDatetimeRange.id)}>🗑️</button>}
+                                    {isCurrentAttendee && <button type="button" disabled={deleteDatetimeRangeMutation.isLoading} onClick={() => handleDeleteDatetimeRange(attendeeDatetimeRange.id)}>🗑️</button>}
                                 </div>
                             </div>
                         );
@@ -148,6 +151,10 @@ const Dashboard: NextPage = () => {
         trpc.room.confirmMeetingByHost.useMutation();
     const submitMeetingTimeMutation = trpc.room.submitMeetingTime.useMutation();
     const cancelMeetingByHostMutation = trpc.room.deleteRoom.useMutation();
+
+    const handleRefetch = () => {
+        getRoomQuery.refetch();
+    };
 
     useEffect(() => {
         console.log(
@@ -231,7 +238,7 @@ const Dashboard: NextPage = () => {
         if (result.result) {
             toast.success("Meeting time submitted");
 
-            getRoomQuery.refetch();
+            handleRefetch();
 
             if (getRoomQuery.isError) {
                 toast.error(getRoomQuery.error.message);
@@ -499,6 +506,7 @@ const Dashboard: NextPage = () => {
                                         attendeeDatetimeRange
                                     }
                                     isCurrentAttendee={isCurrentAttendee}
+                                    handleRefetch={handleRefetch}
                                 />
                             </div>
                         );
