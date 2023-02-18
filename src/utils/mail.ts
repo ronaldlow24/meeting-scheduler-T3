@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-export const SendEmail = (to: string | string[], subject: string, text: string, html : boolean = false) => {
+export const SendEmail = (to: string | string[], subject: string, text: string, html = false) => {
 
     //validate email
     if (to instanceof Array) {
