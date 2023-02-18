@@ -2,14 +2,14 @@ import nodemailer from "nodemailer";
 import Mail from "nodemailer/lib/mailer";
 import { ValidateEmail } from "./common";
 
-const FromEmail = "ron556611@gmail.com";
+const FromEmail = process.env.MailSender;
 
 const transporter = nodemailer.createTransport({
-    host: "smtp-relay.sendinblue.com",
-    port: 587,
+    host: process.env.MailHost,
+    port: Number(process.env.MailPort),
     auth: {
-        user: FromEmail,
-        pass: "dQrN9zJXRDtfhV5Y",
+        user: process.env.MailUserName,
+        pass: process.env.MailPassword,
     },
 });
 
