@@ -2,14 +2,14 @@ import nodemailer from "nodemailer";
 import Mail from "nodemailer/lib/mailer";
 import { ValidateEmail } from "./common";
 
-const FromEmail = process.env.MailSender;
+const FromEmail = process.env.MAIL_SENDER;
 
 const transporter = nodemailer.createTransport({
-    host: process.env.MailHost,
-    port: Number(process.env.MailPort),
+    host: process.env.MAIL_HOST,
+    port: Number(process.env.MAIL_PORT),
     auth: {
-        user: process.env.MailUserName,
-        pass: process.env.MailPassword,
+        user: process.env.MAIL_USERNAME,
+        pass: process.env.MAIL_PASSWORD,
     },
 });
 
