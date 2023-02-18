@@ -71,6 +71,7 @@ const HorizontalTimeLine: React.FC<{
                     .map((attendeeDatetimeRange) => {
                         return (
                             <div
+                                key={attendeeDatetimeRange.id}
                                 className="row border"
                                 style={{
                                     backgroundColor:
