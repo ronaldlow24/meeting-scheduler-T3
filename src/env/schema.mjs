@@ -10,7 +10,7 @@ export const serverSchema = z.object({
   SECRET_COOKIE_PASSWORD: z.string(),
   MAIL_SENDER: z.string(),
   MAIL_HOST: z.string(),
-  MAIL_PORT: z.number(),
+  MAIL_PORT: z.string(),
   MAIL_USERNAME: z.string(),
   MAIL_PASSWORD: z.string(),
   NODE_ENV: z.enum(["development", "test", "production"]),
